@@ -1,0 +1,6 @@
+msrest
+msrestazure
+azure-common
+azure-mgmt-resource
+azure-mgmt-network
+azure-mgmt-compute
