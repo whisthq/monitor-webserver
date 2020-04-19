@@ -43,17 +43,6 @@ def getVM(vm_name):
     except:
         return None
 
-def fetchVMCredentials(vm_name):
-    command = text("""
-        SELECT * FROM v_ms WHERE "vm_name" = :vm_name
-        """)
-    params = {'vm_name': vm_name}
-    with ENGINE.connect() as conn:
-        vm_info = cleanFetchedSQL(conn.execute(command, **params).fetchone())
-        # Decode password
-        conn.close()
-        return vm_info
-
 def updateVMState(vm_name, state):
     command = text("""
         UPDATE v_ms
@@ -78,59 +67,91 @@ def getMostRecentActivity(username):
 
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
-        return activity 
+        return activity
+
+def lockVM(vm_name, lock):
+    command = text("""
+        UPDATE v_ms
+        SET "lock" = :lock
+        WHERE
+           "vm_name" = :vm_name
+        """)
+    params = {'vm_name': vm_name, 'lock': lock}
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
 
 def main():
     vms = fetchAllVms()
-    test = True
     print ("Monitor script running...")
 
     for vm in vms:
-        if not test:
-            break
         vmObject = getVM(vm['vm_name'])
-        # Check to see if VM is running
+        # Get VM state
         vm_state = CCLIENT.virtual_machines.instance_view(
             resource_group_name = os.environ['VM_GROUP'], 
             vm_name = vm['vm_name']
         )
+
+        # Automatically power off VMs on standby
+        if 'running' in vm_state.statuses[1].code:
+            shutdown = False
+            if not vm['username']:
+                shutdown = True
+            else:
+                userActivity = getMostRecentActivity(vm['username'])
+                if not userActivity:
+                    shutdown = True
+                elif userActivity['action'] == 'logoff':
+                    now = datetime.now()
+                    logoffTime = datetime.strptime(userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
+                    #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
+                    if timedelta(minutes=30) <= now - logoffTime:
+                        shutdown = True
+
+            if shutdown and not vm['lock']:
+                print("Automatically deallocating VM " + vm['vm_name'] + "...")
+                async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
+                    os.environ['VM_GROUP'], 
+                    vm['vm_name']
+                )
+                lockVM(vm['vm_name'], True)
+                async_vm_deallocate.wait()
+                lockVM(vm['vm_name'], False)
+
         # Compare with database and update if there's a disreptancy
-        dbVm = fetchVMCredentials(vm['vm_name'])
         state = 'NOT_RUNNING_UNAVAILABLE'
         update = False
         if 'running' in vm_state.statuses[1].code:
-            if not dbVm['state']:
+            if not vm['state']:
                 # Check login to figure out availability
-                if not dbVm['username']:
+                if not vm['username']:
                     state = 'RUNNING_AVAILABLE'
                 else:
-                    state = 'RUNNING_AVAILABLE' if getMostRecentActivity(dbVm.username)['action'] == 'logoff' else 'RUNNING_UNAVAILABLE'
+                    state = 'RUNNING_AVAILABLE' if getMostRecentActivity(vm['username'])['action'] == 'logoff' else 'RUNNING_UNAVAILABLE'
                 update = True
                 print("Initializing VM state for " + vm['vm_name'] + " to " + state)
-            elif dbVm['state'].startswith('NOT_RUNNING'):
-                state = 'RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in dbVm['state'] else 'RUNNING_AVAILABLE'
+            elif vm['state'].startswith('NOT_RUNNING'):
+                state = 'RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm['state'] else 'RUNNING_AVAILABLE'
                 update = True
                 print("Updating VM state for " + vm['vm_name'] + " to " + state)
         else:
-            if not dbVm['state']:
+            if not vm['state']:
                 # Check login to figure out availability
-                if not dbVm['username']:
+                if not vm['username']:
                     state = 'NOT_RUNNING_AVAILABLE'
                 else:
-                    state = 'NOT_RUNNING_AVAILABLE' if getMostRecentActivity(dbVm.username)['action'] == 'logoff' else 'NOT_RUNNING_UNAVAILABLE'
+                    state = 'NOT_RUNNING_AVAILABLE' if getMostRecentActivity(vm['username'])['action'] == 'logoff' else 'NOT_RUNNING_UNAVAILABLE'
                 update = True
                 print("Initializing VM state for " + vm['vm_name'] + " to " + state)
-            elif dbVm['state'].startswith('RUNNING'):
-                state = 'NOT_RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in dbVm['state'] else 'NOT_RUNNING_AVAILABLE'
+            elif vm['state'].startswith('RUNNING'):
+                state = 'NOT_RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm['state'] else 'NOT_RUNNING_AVAILABLE'
                 update = True
                 print("Updating VM state for " + vm['vm_name'] + " to " + state)
         
         if update:
             updateVMState(vm['vm_name'], state)
 
-        # Automatically power off VMs on standby
-        # print(vm_state)
-        # test = False
-    #while True:
-
-main()
+while True:
+    main()
+    time.sleep(5)
