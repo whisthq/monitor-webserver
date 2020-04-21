@@ -87,43 +87,15 @@ def lockVM(vm_name, lock):
 def monitorVMs():
     vms = fetchAllVms()
     global timesDeallocated
-    print ("Monitor script running...")
+    print ("Monitoring VMs...")
 
     for vm in vms:
         try:
-            vmObject = getVM(vm['vm_name'])
             # Get VM state
             vm_state = CCLIENT.virtual_machines.instance_view(
                 resource_group_name = os.environ['VM_GROUP'], 
                 vm_name = vm['vm_name']
             )
-
-            # Automatically deallocate VMs on standby
-            if 'running' in vm_state.statuses[1].code:
-                shutdown = False
-                if not vm['username']:
-                    shutdown = True
-                else:
-                    userActivity = getMostRecentActivity(vm['username'])
-                    if not userActivity:
-                        shutdown = True
-                    elif userActivity['action'] == 'logoff':
-                        now = datetime.now()
-                        logoffTime = datetime.strptime(userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
-                        #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
-                        if timedelta(minutes=30) <= now - logoffTime:
-                            shutdown = True
-
-                if shutdown and not vm['lock']:
-                    print("Automatically deallocating VM " + vm['vm_name'] + "...")
-                    async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-                        os.environ['VM_GROUP'], 
-                        vm['vm_name']
-                    )
-                    lockVM(vm['vm_name'], True)
-                    async_vm_deallocate.wait()
-                    lockVM(vm['vm_name'], False)
-                    timesDeallocated += 1
 
             # Compare with database and update if there's a disreptancy
             state = 'NOT_RUNNING_UNAVAILABLE'
@@ -158,12 +130,68 @@ def monitorVMs():
             if update:
                 updateVMState(vm['vm_name'], state)
 
+            # Automatically deallocate VMs on standby
+            if 'running' in vm_state.statuses[1].code:
+                shutdown = False
+                if not vm['username']:
+                    shutdown = True
+                else:
+                    userActivity = getMostRecentActivity(vm['username'])
+                    if not userActivity:
+                        shutdown = True
+                    elif userActivity['action'] == 'logoff':
+                        now = datetime.now()
+                        logoffTime = datetime.strptime(userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
+                        #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
+                        if timedelta(minutes=30) <= now - logoffTime:
+                            shutdown = True
+
+                if shutdown and not (vm['lock'] or vm['startup']):
+                    print("Automatically deallocating VM " + vm['vm_name'] + "...")
+                    async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
+                        os.environ['VM_GROUP'], 
+                        vm['vm_name']
+                    )
+                    lockVM(vm['vm_name'], True)
+                    async_vm_deallocate.wait()
+                    lockVM(vm['vm_name'], False)
+                    timesDeallocated += 1
+
+        except:
+            file = open("log.txt", "a") 
+            file.write(datetime.now().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
+            vm_state = CCLIENT.virtual_machines.instance_view(
+                resource_group_name = os.environ['VM_GROUP'], 
+                vm_name = vm['vm_name']
+            )
+            print(vm_state)
+            file.close()
+
+def updateLogins():
+    print("Monitoring user logins...")
+    vms = fetchAllVms()
+    for vm in vms:
+        try:
+            state = 'NOT_RUNNING_UNAVAILABLE'
+            update = False
+            if getMostRecentActivity(vm['username'])['action'] == 'logoff' and 'UNAVAILABLE' in vm['state']:
+                state = vm['state']
+                state = state[0:state.rfind('_') + 1] + "AVAILABLE"
+                update = True
+            elif getMostRecentActivity(vm['username'])['action'] == 'logon' and 'UNAVAILABLE' not in vm['state']:
+                state = vm['state']
+                state = state[0:state.rfind('_') + 1] + "UNAVAILABLE"
+                update = True
+            if update:
+                updateVMState(vm['vm_name'], state)
+                print("Updating state for VM " + vm['vm_name'] + " to " + state)
         except:
             file = open("log.txt", "a") 
             file.write(datetime.now().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
             file.close()
 
-
+open('log.txt', 'w').close()
 while True:
     monitorVMs()
+    updateLogins()
     time.sleep(5)
