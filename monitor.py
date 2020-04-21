@@ -167,7 +167,7 @@ def monitorVMs():
             print(vm_state)
             file.close()
 
-def updateLogins():
+def monitorLogins():
     print("Monitoring user logins...")
     vms = fetchAllVms()
     for vm in vms:
@@ -190,8 +190,49 @@ def updateLogins():
             file.write(datetime.now().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
             file.close()
 
-open('log.txt', 'w').close()
-while True:
-    monitorVMs()
-    updateLogins()
-    time.sleep(5)
+def fetchAllDisks():
+    command = text("""
+            SELECT * FROM disks
+            """)
+    params = {}
+    with ENGINE.connect() as conn:
+        disks = cleanFetchedSQL(conn.execute(command, **params).fetchall())
+        conn.close()
+        return disks
+
+def monitorDisks():
+    print("Monitoring disks...")
+    disks = fetchAllDisks()
+    for disk in disks:
+        try:
+            if disk['state'] == "TO_BE_DELETED":
+                print("Automatically deleting Disk " + disk['disk_name'] + "...")
+                async_disk_delete = CCLIENT.disks.delete(
+                    os.environ['VM_GROUP'], 
+                    disk['disk_name']
+                    )
+                async_disk_delete.wait()
+        except:
+            file = open("log.txt", "a") 
+            file.write(datetime.now().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for disk " + disk['disk_name'] + ": " + traceback.format_exc())
+            file.close()
+
+def monitorThread():
+    open('log.txt', 'w').close()
+    while True:
+        monitorVMs()
+        monitorLogins()
+        monitorDisks()
+        time.sleep(5)
+
+def reportThread():
+    while True:
+        time.sleep(60*60)
+        print("Generated hourly report")
+
+if __name__ == "__main__":
+    t1 = threading.Thread(target=monitorThread)
+    t2 = threading.Thread(target=reportThread)
+
+    t1.start()
+    t2.start()
