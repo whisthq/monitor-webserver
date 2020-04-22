@@ -14,9 +14,6 @@ RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
-# Report variables
-timesDeallocated = 0
-
 def cleanFetchedSQL(out):
     if out:
         is_list = isinstance(out, list)
@@ -87,7 +84,7 @@ def lockVM(vm_name, lock):
 def monitorVMs():
     vms = fetchAllVms()
     global timesDeallocated
-    print ("Monitoring VMs...")
+    #print ("Monitoring VMs...")
 
     for vm in vms:
         try:
@@ -140,13 +137,16 @@ def monitorVMs():
                     if not userActivity:
                         shutdown = True
                     elif userActivity['action'] == 'logoff':
-                        now = datetime.now()
+                        now = datetime.utcnow()
                         logoffTime = datetime.strptime(userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
                         #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
                         if timedelta(minutes=30) <= now - logoffTime:
                             shutdown = True
 
-                if shutdown and not (vm['lock'] or vm['startup']):
+                if vm['lock']:
+                    shutdown = False
+
+                if shutdown:
                     print("Automatically deallocating VM " + vm['vm_name'] + "...")
                     async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
                         os.environ['VM_GROUP'], 
@@ -159,7 +159,7 @@ def monitorVMs():
 
         except:
             file = open("log.txt", "a") 
-            file.write(datetime.now().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
+            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
             vm_state = CCLIENT.virtual_machines.instance_view(
                 resource_group_name = os.environ['VM_GROUP'], 
                 vm_name = vm['vm_name']
@@ -168,26 +168,28 @@ def monitorVMs():
             file.close()
 
 def monitorLogins():
-    print("Monitoring user logins...")
+    #print("Monitoring user logins...")
     vms = fetchAllVms()
     for vm in vms:
         try:
             state = 'NOT_RUNNING_UNAVAILABLE'
             update = False
-            if getMostRecentActivity(vm['username'])['action'] == 'logoff' and 'UNAVAILABLE' in vm['state']:
-                state = vm['state']
-                state = state[0:state.rfind('_') + 1] + "AVAILABLE"
-                update = True
-            elif getMostRecentActivity(vm['username'])['action'] == 'logon' and 'UNAVAILABLE' not in vm['state']:
-                state = vm['state']
-                state = state[0:state.rfind('_') + 1] + "UNAVAILABLE"
-                update = True
+            userActivity = getMostRecentActivity(vm['username'])
+            if userActivity:
+                if userActivity['action'] == 'logoff' and 'UNAVAILABLE' in vm['state']:
+                    state = vm['state']
+                    state = state[0:state.rfind('_') + 1] + "AVAILABLE"
+                    update = True
+                elif userActivity['action'] == 'logon' and 'UNAVAILABLE' not in vm['state']:
+                    state = vm['state']
+                    state = state[0:state.rfind('_') + 1] + "UNAVAILABLE"
+                    update = True
             if update:
                 updateVMState(vm['vm_name'], state)
                 print("Updating state for VM " + vm['vm_name'] + " to " + state)
         except:
             file = open("log.txt", "a") 
-            file.write(datetime.now().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
+            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
             file.close()
 
 def fetchAllDisks():
@@ -201,7 +203,7 @@ def fetchAllDisks():
         return disks
 
 def monitorDisks():
-    print("Monitoring disks...")
+    #print("Monitoring disks...")
     disks = fetchAllDisks()
     for disk in disks:
         try:
@@ -214,7 +216,7 @@ def monitorDisks():
                 async_disk_delete.wait()
         except:
             file = open("log.txt", "a") 
-            file.write(datetime.now().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for disk " + disk['disk_name'] + ": " + traceback.format_exc())
+            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for disk " + disk['disk_name'] + ": " + traceback.format_exc())
             file.close()
 
 def monitorThread():
@@ -225,10 +227,85 @@ def monitorThread():
         monitorDisks()
         time.sleep(5)
 
+def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
+    command = text("""
+        INSERT INTO status_report("timestamp", "deallocated_vms", "total_vms_deallocated", "logons", "logoffs", "number_users_eastus", "number_vms_eastus", "number_users_southcentralus", "number_vms_southcentralus", "number_users_northcentralus", "number_vms_northcentralus") 
+        VALUES(:userName, :currentTime, :action, :is_user)
+        """)
+    params = {"timestamp":ts, 
+        "deallocated_vms":deallocVm, 
+        "total_vms_deallocated":totalDealloc, 
+        "logons":logons, 
+        "logoffs":logoffs, 
+        "number_users_eastus":users['eastus'], 
+        "number_vms_eastus":vms['eastus'], 
+        "number_users_southcentralus":users['southcentralus'], 
+        "number_vms_southcentralus":vms['southcentralus'], 
+        "number_users_northcentralus":users['northcentralus'], 
+        "number_vms_northcentralus":vms['northcentralus']}
+    with engine.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
+
+def getLogons(timestamp, action):
+    command = text("""
+        SELECT COUNT(*)
+        FROM login_history
+        WHERE "action" = :action AND "timestamp" > :timestamp
+        """)
+
+    params = {'timestamp': timestamp, 'action': action}
+
+    with ENGINE.connect() as conn:
+        activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
+        return activity
+
 def reportThread():
     while True:
+        # Report variables
+        timesDeallocated = 0
         time.sleep(60*60)
-        print("Generated hourly report")
+
+        timestamp = datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S')
+        vmByRegion = {
+            "eastus":0,
+            "southcentralus":0,
+            "northcentralus":0,
+        }
+        users = {
+            "eastus":0,
+            "southcentralus":0,
+            "northcentralus":0,
+        }
+        oneHourAgo = ( datetime.utcnow() - timedelta(hours = 1) ).strftime('%m-%d-%Y, %H:%M:%S')
+        logons = getLogons(oneHourAgo, 'logon')
+        logoffs = getLogons(oneHourAgo, 'logoff')
+        deallocatedVms = 0
+        vms = fetchAllVms()
+        for vm in vms:
+            if "NOT_RUNNING" in vm['state']:
+                deallocatedVms += 1
+
+            if vm['location'] == "eastus":
+                vmByRegion['eastus'] +=1
+                if vm['username']:
+                    users['eastus'] += 1
+            elif vm['location'] == "southcentralus":
+                vmByRegion['southcentralus'] +=1
+                if vm['username']:
+                    users['southcentralus'] += 1
+            elif vm['location'] == "northcentralus":
+                vmByRegion['northcentralus'] +=1
+                if vm['username']:
+                    users['northcentralus'] += 1
+
+        try:
+            addReportTable(timestamp, deallocatedVms, timesDeallocated, logons, logoffs, vmByRegion, users)
+            print("Generated hourly report")
+        except:
+            file = open("log.txt", "a") 
+            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR while generating report: " + traceback.format_exc())
+            file.close()
 
 if __name__ == "__main__":
     t1 = threading.Thread(target=monitorThread)
