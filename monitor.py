@@ -14,6 +14,9 @@ RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
+# Report variables
+timesDeallocated = 0
+
 def cleanFetchedSQL(out):
     if out:
         is_list = isinstance(out, list)
@@ -22,6 +25,32 @@ def cleanFetchedSQL(out):
         else:
             return dict(out)
     return None
+
+def reportError(service):
+    error = traceback.format_exc()
+    errorTime = datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S')
+
+    # Log error in log.txt
+    file = open("log.txt", "a")
+    file.write(errorTime + " ERROR for " + service + ": " + error)
+    file.close()
+
+    #Send error email to logs@fractalcomputers.com
+    title = 'Error in monitoring service: [' + service +']'
+    message = error + "\n Occured at " + errorTime
+    internal_message = SendGridMail(
+        from_email = 'mingying2011@gmail.com',
+        to_emails = ['logs@fractalcomputers.com'],
+        subject = title,
+        html_content= message
+    )
+    try:
+        sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+        response = sg.send(internal_message)
+    except:
+        file = open("log.txt", "a") 
+        file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR while reporting error: " + traceback.format_exc())
+        file.close()
 
 def fetchAllVms():
     command = text("""
@@ -146,6 +175,15 @@ def monitorVMs():
                 if vm['lock']:
                     shutdown = False
 
+                if vm['dev']:
+                    shutdown = False
+                
+                if vm['last_updated'] and shutdown:
+                    lastActive = datetime.strptime(vm['last_updated'], '%m/%d/%Y, %H:%M')
+                    now = datetime.utcnow()
+                    if timedelta(minutes=30) >= now - lastActive:
+                        shutdown = False
+
                 if shutdown:
                     print("Automatically deallocating VM " + vm['vm_name'] + "...")
                     async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
@@ -158,14 +196,13 @@ def monitorVMs():
                     timesDeallocated += 1
 
         except:
-            file = open("log.txt", "a") 
-            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
+            reportError("VM monitor for VM " + vm['vm_name'])
             vm_state = CCLIENT.virtual_machines.instance_view(
                 resource_group_name = os.environ['VM_GROUP'], 
                 vm_name = vm['vm_name']
             )
             print(vm_state)
-            file.close()
+            
 
 def monitorLogins():
     #print("Monitoring user logins...")
@@ -188,9 +225,7 @@ def monitorLogins():
                 updateVMState(vm['vm_name'], state)
                 print("Updating state for VM " + vm['vm_name'] + " to " + state)
         except:
-            file = open("log.txt", "a") 
-            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for VM " + vm['vm_name'] + ": " + traceback.format_exc())
-            file.close()
+            reportError("Login monitor for VM " + vm['vm_name'])
 
 def fetchAllDisks():
     command = text("""
@@ -215,9 +250,7 @@ def monitorDisks():
                     )
                 async_disk_delete.wait()
         except:
-            file = open("log.txt", "a") 
-            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR for disk " + disk['disk_name'] + ": " + traceback.format_exc())
-            file.close()
+            reportError("Disk monitor for disk " + disk['disk_name'])
 
 def monitorThread():
     open('log.txt', 'w').close()
@@ -230,7 +263,7 @@ def monitorThread():
 def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
     command = text("""
         INSERT INTO status_report("timestamp", "deallocated_vms", "total_vms_deallocated", "logons", "logoffs", "number_users_eastus", "number_vms_eastus", "number_users_southcentralus", "number_vms_southcentralus", "number_users_northcentralus", "number_vms_northcentralus") 
-        VALUES(:userName, :currentTime, :action, :is_user)
+        VALUES(:timestamp, :deallocated_vms, :total_vms_deallocated, :logons, :logoffs, :number_users_eastus, :number_vms_eastus, :number_users_southcentralus, :number_vms_southcentralus, :number_users_northcentralus, :number_vms_northcentralus)
         """)
     params = {"timestamp":ts, 
         "deallocated_vms":deallocVm, 
@@ -243,7 +276,7 @@ def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
         "number_vms_southcentralus":vms['southcentralus'], 
         "number_users_northcentralus":users['northcentralus'], 
         "number_vms_northcentralus":vms['northcentralus']}
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
 
@@ -261,8 +294,8 @@ def getLogons(timestamp, action):
         return activity
 
 def reportThread():
+    global timesDeallocated
     while True:
-        # Report variables
         timesDeallocated = 0
         time.sleep(60*60)
 
@@ -278,8 +311,8 @@ def reportThread():
             "northcentralus":0,
         }
         oneHourAgo = ( datetime.utcnow() - timedelta(hours = 1) ).strftime('%m-%d-%Y, %H:%M:%S')
-        logons = getLogons(oneHourAgo, 'logon')
-        logoffs = getLogons(oneHourAgo, 'logoff')
+        logons = getLogons(oneHourAgo, 'logon')['count']
+        logoffs = getLogons(oneHourAgo, 'logoff')['count']
         deallocatedVms = 0
         vms = fetchAllVms()
         for vm in vms:
@@ -303,9 +336,7 @@ def reportThread():
             addReportTable(timestamp, deallocatedVms, timesDeallocated, logons, logoffs, vmByRegion, users)
             print("Generated hourly report")
         except:
-            file = open("log.txt", "a") 
-            file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') + " ERROR while generating report: " + traceback.format_exc())
-            file.close()
+            reportError("Report gen")
 
 if __name__ == "__main__":
     t1 = threading.Thread(target=monitorThread)
