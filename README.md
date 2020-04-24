@@ -24,7 +24,7 @@ This readme covers how to connect to the instance via Putty.
 4. Open PuTTY
     - Set the 'hostname' field to `ubuntu@ec2-52-91-235-140.compute-1.amazonaws.com`
     - Set the 'port' field to `22`
-    - On the settings bar on the left, select 'connection > SSH > auth'. In the field 'Priavte key file for authentication', hit the 'Browse' button, and select the `.pem` file you generated.
+    - On the settings bar on the left, select 'connection > SSH > auth'. In the field 'Priavte key file for authentication', hit the 'Browse' button, and select the `.ppk` file you generated.
     - Save your SSH profile under 'session' by giving it a name and clicking the 'save' button.
     - Press the 'open' button.
 
