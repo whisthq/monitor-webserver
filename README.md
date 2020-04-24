@@ -40,6 +40,7 @@ This readme covers how to send files to the instance via FileZilla.
 ### Environment variables
 **Load environment variables:**
 1. On SSH, run: `source ~/.bashrc`
+*Note*: You will have to source bashrc for each screen instance you make.
 
 **Read environment variables in python3:**
 
