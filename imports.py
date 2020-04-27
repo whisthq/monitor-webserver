@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import os
 import sqlalchemy
 from sqlalchemy.sql import text
+from haikunator import Haikunator
+import numpy as np
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail as SendGridMail

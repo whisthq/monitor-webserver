@@ -1,4 +1,5 @@
 from imports import *
+from helperfuncs import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -19,105 +20,7 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 timesDeallocated = 0
 
 
-def cleanFetchedSQL(out):
-    if out:
-        is_list = isinstance(out, list)
-        if is_list:
-            return [dict(row) for row in out]
-        else:
-            return dict(out)
-    return None
-
-
-def reportError(service):
-    error = traceback.format_exc()
-    errorTime = datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S')
-
-    # Log error in log.txt
-    file = open("log.txt", "a")
-    file.write(errorTime + " ERROR for " + service + ": " + error)
-    file.close()
-
-    # Send error email to logs@fractalcomputers.com
-    title = 'Error in monitoring service: [' + service + ']'
-    message = error + "\n Occured at " + errorTime
-    internal_message = SendGridMail(
-        from_email='mingying2011@gmail.com',
-        to_emails=['logs@fractalcomputers.com'],
-        subject=title,
-        html_content=message
-    )
-    try:
-        sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-        response = sg.send(internal_message)
-    except:
-        file = open("log.txt", "a")
-        file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
-                   " ERROR while reporting error: " + traceback.format_exc())
-        file.close()
-
-
-def fetchAllVms():
-    command = text("""
-            SELECT * FROM v_ms
-            """)
-    params = {}
-    with ENGINE.connect() as conn:
-        vms_info = cleanFetchedSQL(conn.execute(command, **params).fetchall())
-        conn.close()
-        return vms_info
-
-
-def getVM(vm_name):
-    try:
-        virtual_machine = CCLIENT.virtual_machines.get(
-            os.environ['VM_GROUP'],
-            vm_name
-        )
-        return virtual_machine
-    except:
-        return None
-
-
-def updateVMState(vm_name, state):
-    command = text("""
-        UPDATE v_ms
-        SET state = :state
-        WHERE
-           "vm_name" = :vm_name
-        """)
-    params = {'vm_name': vm_name, 'state': state}
-    with ENGINE.connect() as conn:
-        conn.execute(command, **params)
-        conn.close()
-
-
-def getMostRecentActivity(username):
-    command = text("""
-        SELECT *
-        FROM login_history
-        WHERE "username" = :username
-        ORDER BY timestamp DESC LIMIT 1
-        """)
-
-    params = {'username': username}
-
-    with ENGINE.connect() as conn:
-        activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
-        return activity
-
-
-def lockVM(vm_name, lock):
-    command = text("""
-        UPDATE v_ms
-        SET "lock" = :lock
-        WHERE
-           "vm_name" = :vm_name
-        """)
-    params = {'vm_name': vm_name, 'lock': lock}
-    with ENGINE.connect() as conn:
-        conn.execute(command, **params)
-        conn.close()
+# Deallocates any VM that has been running for over 30 minutes while user has been logged off
 
 
 def monitorVMs():
@@ -224,6 +127,8 @@ def monitorVMs():
             # )
             # print(vm_state)
 
+# Checks for disreptancies between VM availability and the user's login history
+
 
 def monitorLogins():
     print("Monitoring user logins...")
@@ -249,26 +154,7 @@ def monitorLogins():
         except:
             reportError("Login monitor for VM " + vm['vm_name'])
 
-
-def fetchAllDisks():
-    command = text("""
-            SELECT * FROM disks
-            """)
-    params = {}
-    with ENGINE.connect() as conn:
-        disks = cleanFetchedSQL(conn.execute(command, **params).fetchall())
-        conn.close()
-        return disks
-
-
-def deleteDiskFromTable(disk_name):
-    command = text("""
-        DELETE FROM disks WHERE "disk_name" = :disk_name 
-        """)
-    params = {'disk_name': disk_name}
-    with ENGINE.connect() as conn:
-        conn.execute(command, **params)
-        conn.close()
+# Monitors disks in db, and deletes any that have state set as TO_BE_DELETED
 
 
 def monitorDisks():
@@ -288,6 +174,40 @@ def monitorDisks():
         except:
             reportError("Disk monitor for disk " + disk['disk_name'])
 
+# Increases available VMs for a region if the # of available VMs dips below a threshold
+
+
+def manageRegions():
+    theshold = 1
+    locations = ["eastus", "northcentralus", "southcentralus"]
+    for location in locations:
+        availableVms = getVMLocationState(location, "available")
+        if len(availableVms) < theshold:
+            unavailableVms = getVMLocationState(location, "unavailable")
+            vmToAllocate = None
+            for vm in unavailableVms:
+                # Get VM state
+                vm_state = CCLIENT.virtual_machines.instance_view(
+                    resource_group_name=os.environ['VM_GROUP'],
+                    vm_name=vm['vm_name']
+                )
+                if 'deallocated' in vm_state.statuses[1].code:
+                    vmToAllocate = vm['vm_name']
+                    break
+
+            if vmToAllocate:  # Reallocate from VMs
+                print("Reallocating VM " +
+                      unavailableVms[0]['vm_name'] + " in region " + location)
+                async_vm_alloc = CCLIENT.virtual_machines.start(
+                    os.environ['VM_GROUP'],
+                    vmToAllocate
+                )
+                async_vm_alloc.wait()
+            else:
+                print("Creating VM " +
+                      unavailableVms[0]['vm_name'] + " in region " + location)
+                createVM("Standard_NV6_Promo", location)
+
 
 def monitorThread():
     while True:
@@ -295,41 +215,6 @@ def monitorThread():
         monitorLogins()
         monitorDisks()
         time.sleep(5)
-
-
-def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
-    command = text("""
-        INSERT INTO status_report("timestamp", "deallocated_vms", "total_vms_deallocated", "logons", "logoffs", "number_users_eastus", "number_vms_eastus", "number_users_southcentralus", "number_vms_southcentralus", "number_users_northcentralus", "number_vms_northcentralus") 
-        VALUES(:timestamp, :deallocated_vms, :total_vms_deallocated, :logons, :logoffs, :number_users_eastus, :number_vms_eastus, :number_users_southcentralus, :number_vms_southcentralus, :number_users_northcentralus, :number_vms_northcentralus)
-        """)
-    params = {"timestamp": ts,
-              "deallocated_vms": deallocVm,
-              "total_vms_deallocated": totalDealloc,
-              "logons": logons,
-              "logoffs": logoffs,
-              "number_users_eastus": users['eastus'],
-              "number_vms_eastus": vms['eastus'],
-              "number_users_southcentralus": users['southcentralus'],
-              "number_vms_southcentralus": vms['southcentralus'],
-              "number_users_northcentralus": users['northcentralus'],
-              "number_vms_northcentralus": vms['northcentralus']}
-    with ENGINE.connect() as conn:
-        conn.execute(command, **params)
-        conn.close()
-
-
-def getLogons(timestamp, action):
-    command = text("""
-        SELECT COUNT(*)
-        FROM login_history
-        WHERE "action" = :action AND "timestamp" > :timestamp
-        """)
-
-    params = {'timestamp': timestamp, 'action': action}
-
-    with ENGINE.connect() as conn:
-        activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
-        return activity
 
 
 def reportThread():
