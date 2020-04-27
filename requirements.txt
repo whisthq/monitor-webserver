@@ -6,3 +6,5 @@ azure-mgmt-network
 azure-mgmt-compute
 psycopg2-binary
 sendgrid
+haikunator
+numpy

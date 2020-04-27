@@ -16,6 +16,11 @@ RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
+# Threshold for min number of available VMs per region
+REGION_THRESHOLD = 1
+# The regions we care about
+REGIONS = ["eastus", "northcentralus", "southcentralus"]
+
 # Report variables
 timesDeallocated = 0
 
@@ -24,9 +29,18 @@ timesDeallocated = 0
 
 
 def monitorVMs():
-    vms = fetchAllVms()
-    global timesDeallocated
     print("Monitoring VMs...")
+
+    global timesDeallocated
+    freeVmsByRegion = {}
+    for region in REGIONS:
+        regionVms = getVMLocationState(region, "available")
+        if not regionVms:
+            freeVmsByRegion[region] = 0
+        else:
+            freeVmsByRegion[region] = len(regionVms)
+
+    vms = fetchAllVms()
 
     for vm in vms:
         try:
@@ -98,6 +112,9 @@ def monitorVMs():
                     shutdown = False
 
                 if vm['dev']:
+                    shutdown = False
+
+                if vm['location'] in freeVmsByRegion and freeVmsByRegion[vm['location']] <= REGION_THRESHOLD:
                     shutdown = False
 
                 if vm['last_updated'] and shutdown:
@@ -178,43 +195,46 @@ def monitorDisks():
 
 
 def manageRegions():
-    theshold = 1
-    locations = ["eastus", "northcentralus", "southcentralus"]
-    for location in locations:
-        availableVms = getVMLocationState(location, "available")
-        if len(availableVms) < theshold:
-            unavailableVms = getVMLocationState(location, "unavailable")
-            vmToAllocate = None
-            for vm in unavailableVms:
-                # Get VM state
-                vm_state = CCLIENT.virtual_machines.instance_view(
-                    resource_group_name=os.environ['VM_GROUP'],
-                    vm_name=vm['vm_name']
-                )
-                if 'deallocated' in vm_state.statuses[1].code:
-                    vmToAllocate = vm['vm_name']
-                    break
+    print("Monitoring regions...")
+    for location in REGIONS:
+        try:
+            availableVms = getVMLocationState(location, "available")
+            if not availableVms or len(availableVms) < REGION_THRESHOLD:
+                unavailableVms = getVMLocationState(location, "unavailable")
+                vmToAllocate = None
+                for vm in unavailableVms:
+                    # Get VM state
+                    vm_state = CCLIENT.virtual_machines.instance_view(
+                        resource_group_name=os.environ['VM_GROUP'],
+                        vm_name=vm['vm_name']
+                    )
+                    if 'deallocated' in vm_state.statuses[1].code:
+                        vmToAllocate = vm['vm_name']
+                        break
 
-            if vmToAllocate:  # Reallocate from VMs
-                print("Reallocating VM " +
-                      unavailableVms[0]['vm_name'] + " in region " + location)
-                async_vm_alloc = CCLIENT.virtual_machines.start(
-                    os.environ['VM_GROUP'],
-                    vmToAllocate
-                )
-                async_vm_alloc.wait()
-            else:
-                print("Creating VM " +
-                      unavailableVms[0]['vm_name'] + " in region " + location)
-                createVM("Standard_NV6_Promo", location)
+                if vmToAllocate:  # Reallocate from VMs
+                    print("Reallocating VM " +
+                          unavailableVms[0]['vm_name'] + " in region " + location)
+                    async_vm_alloc = CCLIENT.virtual_machines.start(
+                        os.environ['VM_GROUP'],
+                        vmToAllocate
+                    )
+                    async_vm_alloc.wait()
+                else:
+                    print("Creating VM " +
+                          unavailableVms[0]['vm_name'] + " in region " + location)
+                    createVM("Standard_NV6_Promo", location)
+        except:
+            reportError("Region monitor error for region " + location)
 
 
 def monitorThread():
     while True:
         monitorVMs()
+        manageRegions()
         monitorLogins()
         monitorDisks()
-        time.sleep(5)
+        time.sleep(10)
 
 
 def reportThread():

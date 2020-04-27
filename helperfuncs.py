@@ -394,11 +394,11 @@ def getVMLocationState(location, state):
     # This is a bad way of doing things, hopefully this can be changed if we update the database schema
     if(state == "available"):  # Get VMs that are "available" for users to use
         command = text("""
-        SELECT * FROM vms WHERE "location" = :location AND "state" = "RUNNING_AVAILABLE"
+        SELECT * FROM v_ms WHERE ("location" = :location AND "state" = 'RUNNING_AVAILABLE')
         """)
     elif (state == "unavailable"):  # Get deallocated VMs (not running)
         command = text("""
-        SELECT * FROM vms WHERE "location" = :location AND ("state" = "NOT_RUNNING_UNAVAILABLE" OR "state" = "NOT_RUNNING_AVAILABLE")
+        SELECT * FROM v_ms WHERE ("location" = :location AND ("state" = 'NOT_RUNNING_UNAVAILABLE' OR "state" = 'NOT_RUNNING_AVAILABLE'))
         """)
     params = {'location': location}
     with ENGINE.connect() as conn:

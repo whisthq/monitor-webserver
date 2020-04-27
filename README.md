@@ -60,3 +60,5 @@ print(os.environ['LOCATION'])
 On the Ubuntu EC2 instance, you can simply type `screen` to open a new terminal screen in SSH without interfering with your other screens. You can run Python scripts here 24/7.
 
 To exit screen, press `ctrl+A+D` on Windows. To reenter screen, type `screen -r`.
+
+To kill the screen you're in,  press `ctrl + a` and then press `k`, then press `y`
