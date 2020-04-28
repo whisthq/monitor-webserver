@@ -42,99 +42,108 @@ def monitorVMs():
 
     vms = fetchAllVms()
 
+    azureVms = []
+    for azureVm in CCLIENT.virtual_machines.list_all():
+        azureVms.append(azureVm.name)
+
     for vm in vms:
         try:
-            # Get VM state
-            vm_state = CCLIENT.virtual_machines.instance_view(
-                resource_group_name=os.environ['VM_GROUP'],
-                vm_name=vm['vm_name']
-            )
-
-            # Compare with database and update if there's a disreptancy
-            state = 'NOT_RUNNING_UNAVAILABLE'
-            update = False
-            if 'running' in vm_state.statuses[1].code:
-                if not vm['state']:
-                    # Check login to figure out availability
-                    if not vm['username']:
-                        state = 'RUNNING_AVAILABLE'
-                    else:
-                        state = 'RUNNING_AVAILABLE' if getMostRecentActivity(
-                            vm['username'])['action'] == 'logoff' else 'RUNNING_UNAVAILABLE'
-                    update = True
-                    print("Initializing VM state for " +
-                          vm['vm_name'] + " to " + state)
-                elif vm['state'].startswith('NOT_RUNNING'):
-                    state = 'RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
-                        'state'] else 'RUNNING_AVAILABLE'
-                    update = True
-                    print("Updating VM state for " +
-                          vm['vm_name'] + " to " + state)
+            if vm['vm_name'] not in azureVms:
+                deleteVmFromTable(vm['vm_name'])
+                print("Deleted nonexistent VM " +
+                      vm['vm_name'] + " from database")
             else:
-                if not vm['state']:
-                    # Check login to figure out availability
-                    if not vm['username']:
-                        state = 'NOT_RUNNING_AVAILABLE'
-                    else:
-                        state = 'NOT_RUNNING_AVAILABLE' if getMostRecentActivity(
-                            vm['username'])['action'] == 'logoff' else 'NOT_RUNNING_UNAVAILABLE'
-                    update = True
-                    print("Initializing VM state for " +
-                          vm['vm_name'] + " to " + state)
-                elif vm['state'].startswith('RUNNING'):
-                    state = 'NOT_RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
-                        'state'] else 'NOT_RUNNING_AVAILABLE'
-                    update = True
-                    print("Updating VM state for " +
-                          vm['vm_name'] + " to " + state)
+                # Get VM state
+                vm_state = CCLIENT.virtual_machines.instance_view(
+                    resource_group_name=os.environ['VM_GROUP'],
+                    vm_name=vm['vm_name']
+                )
 
-            if update:
-                updateVMState(vm['vm_name'], state)
-
-            # Automatically deallocate VMs on standby
-            if 'running' in vm_state.statuses[1].code:
-                shutdown = False
-                if not vm['username']:
-                    shutdown = True
+                # Compare with database and update if there's a disreptancy
+                state = 'NOT_RUNNING_UNAVAILABLE'
+                update = False
+                if 'running' in vm_state.statuses[1].code:
+                    if not vm['state']:
+                        # Check login to figure out availability
+                        if not vm['username']:
+                            state = 'RUNNING_AVAILABLE'
+                        else:
+                            state = 'RUNNING_AVAILABLE' if getMostRecentActivity(
+                                vm['username'])['action'] == 'logoff' else 'RUNNING_UNAVAILABLE'
+                        update = True
+                        print("Initializing VM state for " +
+                              vm['vm_name'] + " to " + state)
+                    elif vm['state'].startswith('NOT_RUNNING'):
+                        state = 'RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
+                            'state'] else 'RUNNING_AVAILABLE'
+                        update = True
+                        print("Updating VM state for " +
+                              vm['vm_name'] + " to " + state)
                 else:
-                    userActivity = getMostRecentActivity(vm['username'])
-                    if not userActivity:
+                    if not vm['state']:
+                        # Check login to figure out availability
+                        if not vm['username']:
+                            state = 'NOT_RUNNING_AVAILABLE'
+                        else:
+                            state = 'NOT_RUNNING_AVAILABLE' if getMostRecentActivity(
+                                vm['username'])['action'] == 'logoff' else 'NOT_RUNNING_UNAVAILABLE'
+                        update = True
+                        print("Initializing VM state for " +
+                              vm['vm_name'] + " to " + state)
+                    elif vm['state'].startswith('RUNNING'):
+                        state = 'NOT_RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
+                            'state'] else 'NOT_RUNNING_AVAILABLE'
+                        update = True
+                        print("Updating VM state for " +
+                              vm['vm_name'] + " to " + state)
+
+                if update:
+                    updateVMState(vm['vm_name'], state)
+
+                # Automatically deallocate VMs on standby
+                if 'running' in vm_state.statuses[1].code:
+                    shutdown = False
+                    if not vm['username']:
                         shutdown = True
-                    elif userActivity['action'] == 'logoff':
-                        now = datetime.utcnow()
-                        logoffTime = datetime.strptime(
-                            userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
-                        #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
-                        if timedelta(minutes=30) <= now - logoffTime:
+                    else:
+                        userActivity = getMostRecentActivity(vm['username'])
+                        if not userActivity:
                             shutdown = True
+                        elif userActivity['action'] == 'logoff':
+                            now = datetime.utcnow()
+                            logoffTime = datetime.strptime(
+                                userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
+                            #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
+                            if timedelta(minutes=30) <= now - logoffTime:
+                                shutdown = True
 
-                if vm['lock']:
-                    shutdown = False
-
-                if vm['dev']:
-                    shutdown = False
-
-                if vm['location'] in freeVmsByRegion and freeVmsByRegion[vm['location']] <= REGION_THRESHOLD:
-                    shutdown = False
-
-                if vm['last_updated'] and shutdown:
-                    lastActive = datetime.strptime(
-                        vm['last_updated'], '%m/%d/%Y, %H:%M')
-                    now = datetime.utcnow()
-                    if timedelta(minutes=30) >= now - lastActive:
+                    if vm['lock']:
                         shutdown = False
 
-                if shutdown:
-                    print("Automatically deallocating VM " +
-                          vm['vm_name'] + "...")
-                    async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-                        os.environ['VM_GROUP'],
-                        vm['vm_name']
-                    )
-                    lockVM(vm['vm_name'], True)
-                    async_vm_deallocate.wait()
-                    lockVM(vm['vm_name'], False)
-                    timesDeallocated += 1
+                    if vm['dev']:
+                        shutdown = False
+
+                    if vm['location'] in freeVmsByRegion and freeVmsByRegion[vm['location']] <= REGION_THRESHOLD:
+                        shutdown = False
+
+                    if vm['last_updated'] and shutdown:
+                        lastActive = datetime.strptime(
+                            vm['last_updated'], '%m/%d/%Y, %H:%M')
+                        now = datetime.utcnow()
+                        if timedelta(minutes=30) >= now - lastActive:
+                            shutdown = False
+
+                    if shutdown:
+                        print("Automatically deallocating VM " +
+                              vm['vm_name'] + "...")
+                        async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
+                            os.environ['VM_GROUP'],
+                            vm['vm_name']
+                        )
+                        lockVM(vm['vm_name'], True)
+                        async_vm_deallocate.wait()
+                        lockVM(vm['vm_name'], False)
+                        timesDeallocated += 1
 
         except:
             reportError("VM monitor for VM " + vm['vm_name'])
@@ -202,27 +211,27 @@ def manageRegions():
             if not availableVms or len(availableVms) < REGION_THRESHOLD:
                 unavailableVms = getVMLocationState(location, "unavailable")
                 vmToAllocate = None
-                for vm in unavailableVms:
-                    # Get VM state
-                    vm_state = CCLIENT.virtual_machines.instance_view(
-                        resource_group_name=os.environ['VM_GROUP'],
-                        vm_name=vm['vm_name']
-                    )
-                    if 'deallocated' in vm_state.statuses[1].code:
-                        vmToAllocate = vm['vm_name']
-                        break
+                if unavailableVms:
+                    for vm in unavailableVms:
+                        # Get VM state
+                        vm_state = CCLIENT.virtual_machines.instance_view(
+                            resource_group_name=os.environ['VM_GROUP'],
+                            vm_name=vm['vm_name']
+                        )
+                        if 'deallocated' in vm_state.statuses[1].code:
+                            vmToAllocate = vm['vm_name']
+                            break
 
                 if vmToAllocate:  # Reallocate from VMs
                     print("Reallocating VM " +
-                          unavailableVms[0]['vm_name'] + " in region " + location)
+                          vmToAllocate + " in region " + location)
                     async_vm_alloc = CCLIENT.virtual_machines.start(
                         os.environ['VM_GROUP'],
                         vmToAllocate
                     )
                     async_vm_alloc.wait()
                 else:
-                    print("Creating VM " +
-                          unavailableVms[0]['vm_name'] + " in region " + location)
+                    print("Creating VM in region " + location)
                     createVM("Standard_NV6_Promo", location)
         except:
             reportError("Region monitor error for region " + location)

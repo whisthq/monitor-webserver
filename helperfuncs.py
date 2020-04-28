@@ -38,22 +38,22 @@ def reportError(service):
     file.close()
 
     # Send error email to logs@fractalcomputers.com
-    title = 'Error in monitoring service: [' + service + ']'
-    message = error + "\n Occured at " + errorTime
-    internal_message = SendGridMail(
-        from_email='mingying2011@gmail.com',
-        to_emails=['logs@fractalcomputers.com'],
-        subject=title,
-        html_content=message
-    )
-    try:
-        sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-        response = sg.send(internal_message)
-    except:
-        file = open("log.txt", "a")
-        file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
-                   " ERROR while reporting error: " + traceback.format_exc())
-        file.close()
+    # title = 'Error in monitoring service: [' + service + ']'
+    # message = error + "\n Occured at " + errorTime
+    # internal_message = SendGridMail(
+    #     from_email='mingying2011@gmail.com',
+    #     to_emails=['logs@fractalcomputers.com'],
+    #     subject=title,
+    #     html_content=message
+    # )
+    # try:
+    #     sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+    #     response = sg.send(internal_message)
+    # except:
+    #     file = open("log.txt", "a")
+    #     file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
+    #                " ERROR while reporting error: " + traceback.format_exc())
+    #     file.close()
 
 
 def fetchAllVms():
@@ -196,7 +196,8 @@ def createNic(name, location, tries):
         return async_nic_creation.result()
     except Exception as e:
         if tries < 5:
-            print(e)
+            # print(e)
+            print("Trying again for createNic")
             time.sleep(3)
             return createNic(name, location, tries + 1)
         else:
@@ -387,6 +388,16 @@ def deleteDiskFromTable(disk_name):
         conn.close()
 
 
+def deleteVmFromTable(vm_name):
+    command = text("""
+        DELETE FROM v_ms WHERE "vm_name" = :vm_name 
+        """)
+    params = {'vm_name': vm_name}
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
+
+
 # Gets all VMs from database with specified location and state
 
 
@@ -394,7 +405,7 @@ def getVMLocationState(location, state):
     # This is a bad way of doing things, hopefully this can be changed if we update the database schema
     if(state == "available"):  # Get VMs that are "available" for users to use
         command = text("""
-        SELECT * FROM v_ms WHERE ("location" = :location AND "state" = 'RUNNING_AVAILABLE')
+        SELECT * FROM v_ms WHERE ("location" = :location AND "state" = 'RUNNING_AVAILABLE' AND "dev" = 'false')
         """)
     elif (state == "unavailable"):  # Get deallocated VMs (not running)
         command = text("""
