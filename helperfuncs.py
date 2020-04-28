@@ -109,11 +109,12 @@ def getMostRecentActivity(username):
 def lockVM(vm_name, lock):
     command = text("""
         UPDATE v_ms
-        SET "lock" = :lock
+        SET "lock" = :lock, "last_updated" = :last_updated
         WHERE
            "vm_name" = :vm_name
         """)
-    params = {'vm_name': vm_name, 'lock': lock}
+    last_updated = datetime.utcnow().strftime('%m/%d/%Y, %H:%M')
+    params = {'vm_name': vm_name, 'lock': lock, 'last_updated': last_updated}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -330,33 +331,13 @@ def createVM(vm_size, location):
         'type_handler_version': '1.2'
     }
 
-    async_vm_powershell = CCLIENT.virtual_machine_extensions.create_or_update(os.environ['VM_GROUP'],
-                                                                              vmParameters['vm_name'], 'NvidiaGpuDriverWindows', extension_parameters)
-    async_vm_powershell.wait()
+    async_vm_extension = CCLIENT.virtual_machine_extensions.create_or_update(os.environ['VM_GROUP'],
+                                                                             vmParameters['vm_name'], 'NvidiaGpuDriverWindows', extension_parameters)
+    async_vm_extension.wait()
 
     async_vm_start = CCLIENT.virtual_machines.start(
         os.environ['VM_GROUP'], vmParameters['vm_name'])
     async_vm_start.wait()
-
-    with open('vmCreate.txt', 'r') as file:
-        print("TASK: Starting to run Powershell scripts")
-        command = file.read()
-        run_command_parameters = {
-            'command_id': 'RunPowerShellScript',
-            'script': [
-                command
-            ]
-        }
-
-        poller = CCLIENT.virtual_machines.run_command(
-            os.environ['VM_GROUP'],
-            vmParameters['vm_name'],
-            run_command_parameters
-        )
-
-        result = poller.result()
-        print("SUCCESS: Powershell scripts finished running")
-        print(result.value[0].message)
 
     vm = getVM(vmParameters['vm_name'])
     vm_ip = getIP(vm)
@@ -409,7 +390,7 @@ def getVMLocationState(location, state):
         """)
     elif (state == "unavailable"):  # Get deallocated VMs (not running)
         command = text("""
-        SELECT * FROM v_ms WHERE ("location" = :location AND ("state" = 'NOT_RUNNING_UNAVAILABLE' OR "state" = 'NOT_RUNNING_AVAILABLE'))
+        SELECT * FROM v_ms WHERE ("location" = :location AND "dev" = 'false' AND ("state" = 'NOT_RUNNING_UNAVAILABLE' OR "state" = 'NOT_RUNNING_AVAILABLE'))
         """)
     params = {'location': location}
     with ENGINE.connect() as conn:

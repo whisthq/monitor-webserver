@@ -65,7 +65,7 @@ def monitorVMs():
                 if 'running' in vm_state.statuses[1].code:
                     if not vm['state']:
                         # Check login to figure out availability
-                        if not vm['username']:
+                        if not vm['username'] or not getMostRecentActivity(vm['username']):
                             state = 'RUNNING_AVAILABLE'
                         else:
                             state = 'RUNNING_AVAILABLE' if getMostRecentActivity(
@@ -229,7 +229,9 @@ def manageRegions():
                         os.environ['VM_GROUP'],
                         vmToAllocate
                     )
+                    lockVM(vmToAllocate, True)
                     async_vm_alloc.wait()
+                    lockVM(vmToAllocate, False)
                 else:
                     print("Creating VM in region " + location)
                     createVM("Standard_NV6_Promo", location)
