@@ -38,22 +38,22 @@ def reportError(service):
     file.close()
 
     # Send error email to logs@fractalcomputers.com
-    # title = 'Error in monitoring service: [' + service + ']'
-    # message = error + "\n Occured at " + errorTime
-    # internal_message = SendGridMail(
-    #     from_email='mingying2011@gmail.com',
-    #     to_emails=['logs@fractalcomputers.com'],
-    #     subject=title,
-    #     html_content=message
-    # )
-    # try:
-    #     sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-    #     response = sg.send(internal_message)
-    # except:
-    #     file = open("log.txt", "a")
-    #     file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
-    #                " ERROR while reporting error: " + traceback.format_exc())
-    #     file.close()
+    title = 'Error in monitoring service: [' + service + ']'
+    message = error + "\n Occured at " + errorTime
+    internal_message = SendGridMail(
+        from_email='mingying2011@gmail.com',
+        to_emails=['logs@fractalcomputers.com'],
+        subject=title,
+        html_content=message
+    )
+    try:
+        sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+        response = sg.send(internal_message)
+    except:
+        file = open("log.txt", "a")
+        file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
+                   " ERROR while reporting error: " + traceback.format_exc())
+        file.close()
 
 
 def fetchAllVms():
