@@ -185,20 +185,25 @@ def monitorLogins():
 
 def monitorDisks():
     print("Monitoring disks...")
-    disks = fetchAllDisks()
-    for disk in disks:
+    dbDisks = fetchAllDisks()
+
+    for dbDisk in dbDisks:
         try:
-            if disk['state'] == "TO_BE_DELETED":
-                print("Automatically deleting Disk " +
-                      disk['disk_name'] + "...")
-                async_disk_delete = CCLIENT.disks.delete(
-                    os.environ['VM_GROUP'],
-                    disk['disk_name']
-                )
-                async_disk_delete.wait()
-                deleteDiskFromTable(disk['disk_name'])
+            if dbDisk['state'] == "TO_BE_DELETED":
+                os_disk = CCLIENT.disks.get(
+                    os.environ['VM_GROUP'], dbDisk['disk_name'])
+                vm_name = os_disk.managed_by
+                if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
+                    print("Automatically deleting Disk " +
+                          dbDisk['disk_name'] + "...")
+                    async_disk_delete = CCLIENT.disks.delete(
+                        os.environ['VM_GROUP'],
+                        dbDisk['disk_name']
+                    )
+                    async_disk_delete.wait()
+                    deleteDiskFromTable(dbDisk['disk_name'])
         except:
-            reportError("Disk monitor for disk " + disk['disk_name'])
+            reportError("Disk monitor for disk " + dbDisk['disk_name'])
 
 # Increases available VMs for a region if the # of available VMs dips below a threshold
 
