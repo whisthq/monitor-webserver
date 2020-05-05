@@ -105,17 +105,26 @@ def monitorVMs():
                     shutdown = False
                     if not vm['username']:
                         shutdown = True
+                    # else:
+                    #     userActivity = getMostRecentActivity(vm['username'])
+                    #     if not userActivity:
+                    #         shutdown = True
+                    #     elif userActivity['action'] == 'logoff':
+                    #         now = datetime.utcnow()
+                    #         logoffTime = datetime.strptime(
+                    #             userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
+                    #         #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
+                    #         if timedelta(minutes=30) <= now - logoffTime:
+                    #             shutdown = True
+
+                    if not vm['last_updated']:
+                        shutdown = True
                     else:
-                        userActivity = getMostRecentActivity(vm['username'])
-                        if not userActivity:
+                        lastActive = datetime.strptime(
+                            vm['last_updated'], '%m/%d/%Y, %H:%M')
+                        now = datetime.utcnow()
+                        if timedelta(minutes=30) <= now - lastActive and vm['state'] == "RUNNING_AVAILABLE":
                             shutdown = True
-                        elif userActivity['action'] == 'logoff':
-                            now = datetime.utcnow()
-                            logoffTime = datetime.strptime(
-                                userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
-                            #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
-                            if timedelta(minutes=30) <= now - logoffTime:
-                                shutdown = True
 
                     if vm['lock']:
                         shutdown = False
@@ -125,13 +134,6 @@ def monitorVMs():
 
                     if vm['location'] in freeVmsByRegion and freeVmsByRegion[vm['location']] <= REGION_THRESHOLD:
                         shutdown = False
-
-                    if vm['last_updated'] and shutdown:
-                        lastActive = datetime.strptime(
-                            vm['last_updated'], '%m/%d/%Y, %H:%M')
-                        now = datetime.utcnow()
-                        if timedelta(minutes=30) >= now - lastActive:
-                            shutdown = False
 
                     if shutdown:
                         print("Automatically deallocating VM " +
