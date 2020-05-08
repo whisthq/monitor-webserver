@@ -31,11 +31,15 @@ def cleanFetchedSQL(out):
 def reportError(service):
     error = traceback.format_exc()
     errorTime = datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S')
+    msg = "ERROR for " + service + ": " + error
 
     # Log error in log.txt
     file = open("log.txt", "a")
-    file.write(errorTime + " ERROR for " + service + ": " + error)
+    file.write(errorTime + " " + msg)
     file.close()
+
+    # Send log to Papertrail
+    sendError(msg)
 
     # Send error email to logs@fractalcomputers.com
     title = 'Error in monitoring service: [' + service + ']'
@@ -432,3 +436,43 @@ def getLogons(timestamp, action):
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         return activity
+
+# Logging
+
+
+class ContextFilter(logging.Filter):
+    hostname = socket.gethostname()
+
+    def filter(self, record):
+        record.hostname = ContextFilter.hostname
+        return True
+
+
+syslog = SysLogHandler(address=(os.environ['LOGGER_URL'], 44138))
+syslog.addFilter(ContextFilter())
+
+format = '%(asctime)s %(hostname)s YOUR_APP: %(message)s'
+formatter = logging.Formatter(format, datefmt='%b %d %H:%M:%S')
+syslog.setFormatter(formatter)
+
+logger = logging.getLogger()
+logger.addHandler(syslog)
+logger.setLevel(logging.INFO)
+
+
+def sendInfo(log, papertrail=True):
+    if papertrail:
+        logger.info('[MONITOR] INFO: {}'.format(log))
+    print('[MONITOR] INFO: {}'.format(log))
+
+
+def sendError(log, papertrail=True):
+    if papertrail:
+        logger.error('[MONITOR] ERROR: {}'.format(log))
+    print('[MONITOR] ERROR: {}'.format(log))
+
+
+def sendCritical(log, papertrail=True):
+    if papertrail:
+        logger.critical('[MONITOR] CRITICAL: {}'.format(log))
+    print('[MONITOR] CRITICAL: {}'.format(log))

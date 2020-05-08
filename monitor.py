@@ -29,7 +29,7 @@ timesDeallocated = 0
 
 
 def monitorVMs():
-    print("Monitoring VMs...")
+    sendInfo("Monitoring VMs...")
 
     global timesDeallocated
     freeVmsByRegion = {}
@@ -50,8 +50,8 @@ def monitorVMs():
         try:
             if vm['vm_name'] not in azureVms:
                 deleteVmFromTable(vm['vm_name'])
-                print("Deleted nonexistent VM " +
-                      vm['vm_name'] + " from database")
+                sendInfo("Deleted nonexistent VM " +
+                         vm['vm_name'] + " from database")
             else:
                 # Get VM state
                 vm_state = CCLIENT.virtual_machines.instance_view(
@@ -71,14 +71,14 @@ def monitorVMs():
                             state = 'RUNNING_AVAILABLE' if getMostRecentActivity(
                                 vm['username'])['action'] == 'logoff' else 'RUNNING_UNAVAILABLE'
                         update = True
-                        print("Initializing VM state for " +
-                              vm['vm_name'] + " to " + state)
+                        sendInfo("Initializing VM state for " +
+                                 vm['vm_name'] + " to " + state)
                     elif vm['state'].startswith('NOT_RUNNING'):
                         state = 'RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
                             'state'] else 'RUNNING_AVAILABLE'
                         update = True
-                        print("Updating VM state for " +
-                              vm['vm_name'] + " to " + state)
+                        sendInfo("Updating VM state for " +
+                                 vm['vm_name'] + " to " + state)
                 else:
                     if not vm['state']:
                         # Check login to figure out availability
@@ -88,14 +88,14 @@ def monitorVMs():
                             state = 'NOT_RUNNING_AVAILABLE' if getMostRecentActivity(
                                 vm['username'])['action'] == 'logoff' else 'NOT_RUNNING_UNAVAILABLE'
                         update = True
-                        print("Initializing VM state for " +
-                              vm['vm_name'] + " to " + state)
+                        sendInfo("Initializing VM state for " +
+                                 vm['vm_name'] + " to " + state)
                     elif vm['state'].startswith('RUNNING'):
                         state = 'NOT_RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
                             'state'] else 'NOT_RUNNING_AVAILABLE'
                         update = True
-                        print("Updating VM state for " +
-                              vm['vm_name'] + " to " + state)
+                        sendInfo("Updating VM state for " +
+                                 vm['vm_name'] + " to " + state)
 
                 if update:
                     updateVMState(vm['vm_name'], state)
@@ -136,8 +136,8 @@ def monitorVMs():
                         shutdown = False
 
                     if shutdown:
-                        print("Automatically deallocating VM " +
-                              vm['vm_name'] + "...")
+                        sendInfo("Automatically deallocating VM " +
+                                 vm['vm_name'] + "...")
                         async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
                             os.environ['VM_GROUP'],
                             vm['vm_name']
@@ -159,7 +159,7 @@ def monitorVMs():
 
 
 def monitorLogins():
-    print("Monitoring user logins...")
+    sendInfo("Monitoring user logins...")
     vms = fetchAllVms()
     for vm in vms:
         try:
@@ -177,8 +177,8 @@ def monitorLogins():
                     update = True
             if update:
                 updateVMState(vm['vm_name'], state)
-                print("Updating state for VM " +
-                      vm['vm_name'] + " to " + state)
+                sendInfo("Updating state for VM " +
+                         vm['vm_name'] + " to " + state)
         except:
             reportError("Login monitor for VM " + vm['vm_name'])
 
@@ -186,7 +186,7 @@ def monitorLogins():
 
 
 def monitorDisks():
-    print("Monitoring disks...")
+    sendInfo("Monitoring disks...")
     dbDisks = fetchAllDisks()
 
     for dbDisk in dbDisks:
@@ -196,8 +196,8 @@ def monitorDisks():
                     os.environ['VM_GROUP'], dbDisk['disk_name'])
                 vm_name = os_disk.managed_by
                 if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
-                    print("Automatically deleting Disk " +
-                          dbDisk['disk_name'] + "...")
+                    sendInfo("Automatically deleting Disk " +
+                             dbDisk['disk_name'] + "...")
                     async_disk_delete = CCLIENT.disks.delete(
                         os.environ['VM_GROUP'],
                         dbDisk['disk_name']
@@ -211,7 +211,7 @@ def monitorDisks():
 
 
 def manageRegions():
-    print("Monitoring regions...")
+    sendInfo("Monitoring regions...")
     for location in REGIONS:
         try:
             availableVms = getVMLocationState(location, "available")
@@ -230,8 +230,8 @@ def manageRegions():
                             break
 
                 if vmToAllocate:  # Reallocate from VMs
-                    print("Reallocating VM " +
-                          vmToAllocate + " in region " + location)
+                    sendInfo("Reallocating VM " +
+                             vmToAllocate + " in region " + location)
                     async_vm_alloc = CCLIENT.virtual_machines.start(
                         os.environ['VM_GROUP'],
                         vmToAllocate
@@ -240,7 +240,7 @@ def manageRegions():
                     async_vm_alloc.wait()
                     lockVM(vmToAllocate, False)
                 else:
-                    print("Creating VM in region " + location)
+                    sendInfo("Creating VM in region " + location)
                     createVM("Standard_NV6_Promo", location)
         except:
             reportError("Region monitor error for region " + location)
@@ -298,7 +298,7 @@ def reportThread():
         try:
             addReportTable(timestamp, deallocatedVms,
                            timesDeallocated, logons, logoffs, vmByRegion, users)
-            print("Generated hourly report")
+            sendInfo("Generated hourly report")
         except:
             reportError("Report gen")
 
