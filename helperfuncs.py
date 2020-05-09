@@ -83,6 +83,7 @@ def getVM(vm_name):
 
 
 def updateVMState(vm_name, state):
+    sendInfo("Automatically updating state for VM " + vm_name + " to " + state)
     command = text("""
         UPDATE v_ms
         SET state = :state
@@ -394,7 +395,7 @@ def getVMLocationState(location, state):
         """)
     elif (state == "unavailable"):  # Get deallocated VMs (not running)
         command = text("""
-        SELECT * FROM v_ms WHERE ("location" = :location AND "dev" = 'false' AND ("state" = 'NOT_RUNNING_UNAVAILABLE' OR "state" = 'NOT_RUNNING_AVAILABLE'))
+        SELECT * FROM v_ms WHERE ("location" = :location AND "dev" = 'false' AND "state" = 'DEALLOCATED')
         """)
     params = {'location': location}
     with ENGINE.connect() as conn:
