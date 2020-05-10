@@ -29,7 +29,7 @@ timesDeallocated = 0
 
 
 def monitorVMs():
-    sendInfo("Monitoring VMs...")
+    print("Monitoring VMs...")
 
     global timesDeallocated
     freeVmsByRegion = {}
@@ -58,64 +58,32 @@ def monitorVMs():
                     resource_group_name=os.environ['VM_GROUP'],
                     vm_name=vm['vm_name']
                 )
-
                 # Compare with database and update if there's a disreptancy
-                state = 'NOT_RUNNING_UNAVAILABLE'
-                update = False
-                if 'running' in vm_state.statuses[1].code:
-                    if not vm['state']:
-                        # Check login to figure out availability
-                        if not vm['username'] or not getMostRecentActivity(vm['username']):
-                            state = 'RUNNING_AVAILABLE'
-                        else:
-                            state = 'RUNNING_AVAILABLE' if getMostRecentActivity(
-                                vm['username'])['action'] == 'logoff' else 'RUNNING_UNAVAILABLE'
-                        update = True
-                        sendInfo("Initializing VM state for " +
-                                 vm['vm_name'] + " to " + state)
-                    elif vm['state'].startswith('NOT_RUNNING'):
-                        state = 'RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
-                            'state'] else 'RUNNING_AVAILABLE'
-                        update = True
-                        sendInfo("Updating VM state for " +
-                                 vm['vm_name'] + " to " + state)
-                else:
-                    if not vm['state']:
-                        # Check login to figure out availability
-                        if not vm['username']:
-                            state = 'NOT_RUNNING_AVAILABLE'
-                        else:
-                            state = 'NOT_RUNNING_AVAILABLE' if getMostRecentActivity(
-                                vm['username'])['action'] == 'logoff' else 'NOT_RUNNING_UNAVAILABLE'
-                        update = True
-                        sendInfo("Initializing VM state for " +
-                                 vm['vm_name'] + " to " + state)
-                    elif vm['state'].startswith('RUNNING'):
-                        state = 'NOT_RUNNING_UNAVAILABLE' if 'UNAVAILABLE' in vm[
-                            'state'] else 'NOT_RUNNING_AVAILABLE'
-                        update = True
-                        sendInfo("Updating VM state for " +
-                                 vm['vm_name'] + " to " + state)
-
-                if update:
-                    updateVMState(vm['vm_name'], state)
+                power_state = vm_state.statuses[1].code
+                if 'starting' in power_state:
+                    if vm['state'] != 'STARTING':
+                        updateVMState(vm['vm_name'], "STARTING")
+                elif 'stopping' in power_state:
+                    if vm['state'] != 'STOPPING':
+                        updateVMState(vm['vm_name'], "STOPPING")
+                elif 'deallocating' in power_state:
+                    if vm['state'] != 'DEALLOCATING':
+                        updateVMState(vm['vm_name'], "DEALLOCATING")
+                elif 'stopped' in power_state:
+                    if vm['state'] != 'STOPPED':
+                        updateVMState(vm['vm_name'], "STOPPED")
+                elif 'deallocated' in power_state:
+                    if vm['state'] != 'DEALLOCATED':
+                        updateVMState(vm['vm_name'], "DEALLOCATED")
+                elif 'running' not in power_state:
+                    sendError("State " + power_state +
+                              " incompatible with VM " + vm['vm_name'])
 
                 # Automatically deallocate VMs on standby
                 if 'running' in vm_state.statuses[1].code:
                     shutdown = False
                     if not vm['username']:
                         shutdown = True
-                    # else:
-                    #     userActivity = getMostRecentActivity(vm['username'])
-                    #     if not userActivity:
-                    #         shutdown = True
-                    #     elif userActivity['action'] == 'logoff':
-                    #         now = datetime.utcnow()
-                    #         logoffTime = datetime.strptime(
-                    #             userActivity['timestamp'], '%m-%d-%Y, %H:%M:%S')
-                    #         #print(logoffTime.strftime('%m-%d-%Y, %H:%M:%S'))
-                    #         if timedelta(minutes=30) <= now - logoffTime:
-                    #             shutdown = True
 
                     if not vm['last_updated']:
                         shutdown = True
@@ -142,8 +110,11 @@ def monitorVMs():
                             os.environ['VM_GROUP'],
                             vm['vm_name']
                         )
+                        sendInfo("Locking VM " + vm['vm_name'])
                         lockVM(vm['vm_name'], True)
+                        updateVMState(vm['vm_name'], "DEALLOCATING")
                         async_vm_deallocate.wait()
+                        sendInfo("Unlocking VM " + vm['vm_name'])
                         lockVM(vm['vm_name'], False)
                         timesDeallocated += 1
 
@@ -159,7 +130,7 @@ def monitorVMs():
 
 
 def monitorLogins():
-    sendInfo("Monitoring user logins...")
+    print("Monitoring user logins...")
     vms = fetchAllVms()
     for vm in vms:
         try:
@@ -186,24 +157,35 @@ def monitorLogins():
 
 
 def monitorDisks():
-    sendInfo("Monitoring disks...")
+    print("Monitoring disks...")
     dbDisks = fetchAllDisks()
 
     for dbDisk in dbDisks:
         try:
+            delete = False
             if dbDisk['state'] == "TO_BE_DELETED":
                 os_disk = CCLIENT.disks.get(
                     os.environ['VM_GROUP'], dbDisk['disk_name'])
                 vm_name = os_disk.managed_by
                 if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
-                    sendInfo("Automatically deleting Disk " +
-                             dbDisk['disk_name'] + "...")
-                    async_disk_delete = CCLIENT.disks.delete(
-                        os.environ['VM_GROUP'],
-                        dbDisk['disk_name']
-                    )
-                    async_disk_delete.wait()
-                    deleteDiskFromTable(dbDisk['disk_name'])
+                    if not dbDisk['delete_date']:
+                        delete = True
+                    else:
+                        expiryTime = datetime.strptime(
+                            dbDisk['delete_date'], '%m/%d/%Y, %H:%M')
+                        now = datetime.utcnow()
+                        if now > expiryTime:
+                            delete = True
+
+            if delete:
+                sendInfo("Automatically deleting Disk " +
+                         dbDisk['disk_name'] + "...")
+                async_disk_delete = CCLIENT.disks.delete(
+                    os.environ['VM_GROUP'],
+                    dbDisk['disk_name']
+                )
+                async_disk_delete.wait()
+                deleteDiskFromTable(dbDisk['disk_name'])
         except:
             reportError("Disk monitor for disk " + dbDisk['disk_name'])
 
@@ -211,7 +193,7 @@ def monitorDisks():
 
 
 def manageRegions():
-    sendInfo("Monitoring regions...")
+    print("Monitoring regions...")
     for location in REGIONS:
         try:
             availableVms = getVMLocationState(location, "available")
@@ -236,8 +218,11 @@ def manageRegions():
                         os.environ['VM_GROUP'],
                         vmToAllocate
                     )
+                    sendInfo("Locking VM " + vm['vm_name'])
                     lockVM(vmToAllocate, True)
+                    updateVMState(vm['vm_name'], "STARTING")
                     async_vm_alloc.wait()
+                    sendInfo("Unlocking VM " + vm['vm_name'])
                     lockVM(vmToAllocate, False)
                 else:
                     sendInfo("Creating VM in region " + location)
@@ -250,7 +235,7 @@ def monitorThread():
     while True:
         monitorVMs()
         manageRegions()
-        monitorLogins()
+        # monitorLogins()
         monitorDisks()
         time.sleep(10)
 
