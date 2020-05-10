@@ -1,10 +1,9 @@
 # This script gets run (as Administrator) by a Fractal Cloud Computer to enable Cloud streaming
 # This script should only get run on Windows computers
-# This script is part 1 of 2, and runs cloud-1.ps1
 param (
     [string]        $admin_username = "Fractal",
     [SecureString]  $admin_password = (ConvertTo-SecureString "password1234567." -AsPlainText -Force),
-    [switch]        $run_on_local           = $false, # if true, this script won't use PS-Remoting and needs to be run locally via RDP, else it uses PS-Remoting to work from a webserver
+    [switch]        $run_on_local           = $true, # if true, this script won't use PS-Remoting and needs to be run locally via RDP, else it uses PS-Remoting to work from a webserver
     [switch]        $creative_install       = $false,
     [switch]        $datascience_install    = $false,
     [switch]        $gaming_install         = $false,
@@ -43,6 +42,7 @@ Install-DirectX
 Install-VisualRedist
 Install-VirtualAudio
 Enable-Audio
+Enable-RemotePowerShell # necessaryfor running run_on_local = $false scripts
 Enable-MouseKeys $run_on_local $credentials
 Set-MousePrecision $run_on_local $credentials
 Set-Time
