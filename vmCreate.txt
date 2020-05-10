@@ -3,7 +3,7 @@
 param (
     [string]        $admin_username = "Fractal",
     [SecureString]  $admin_password = (ConvertTo-SecureString "password1234567." -AsPlainText -Force),
-    [switch]        $run_on_local           = $true, # if true, this script won't use PS-Remoting and needs to be run locally via RDP, else it uses PS-Remoting to work from a webserver
+    [switch]        $run_on_local           = $false, # if true, this script won't use PS-Remoting and needs to be run locally via RDP, else it uses PS-Remoting to work from a webserver
     [switch]        $creative_install       = $false,
     [switch]        $datascience_install    = $false,
     [switch]        $gaming_install         = $false,
