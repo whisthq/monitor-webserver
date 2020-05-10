@@ -58,19 +58,23 @@ def monitorVMs():
                     resource_group_name=os.environ['VM_GROUP'],
                     vm_name=vm['vm_name']
                 )
-
                 # Compare with database and update if there's a disreptancy
                 power_state = vm_state.statuses[1].code
-                if 'starting' in power_state and vm['state'] != 'STARTING':
-                    updateVMState(vm['vm_name'], "STARTING")
-                elif 'stopping' in power_state and vm['state'] != 'STOPPING':
-                    updateVMState(vm['vm_name'], "STOPPING")
-                elif 'deallocating' in power_state and vm['state'] != 'DEALLOCATING':
-                    updateVMState(vm['vm_name'], "DEALLOCATING")
-                elif 'stopped' in power_state and vm['state'] != 'STOPPED':
-                    updateVMState(vm['vm_name'], "STOPPED")
-                elif 'deallocated' in power_state and vm['state'] != 'DEALLOCATED':
-                    updateVMState(vm['vm_name'], "DEALLOCATED")
+                if 'starting' in power_state:
+                    if vm['state'] != 'STARTING':
+                        updateVMState(vm['vm_name'], "STARTING")
+                elif 'stopping' in power_state:
+                    if vm['state'] != 'STOPPING':
+                        updateVMState(vm['vm_name'], "STOPPING")
+                elif 'deallocating' in power_state:
+                    if vm['state'] != 'DEALLOCATING':
+                        updateVMState(vm['vm_name'], "DEALLOCATING")
+                elif 'stopped' in power_state:
+                    if vm['state'] != 'STOPPED':
+                        updateVMState(vm['vm_name'], "STOPPED")
+                elif 'deallocated' in power_state:
+                    if vm['state'] != 'DEALLOCATED':
+                        updateVMState(vm['vm_name'], "DEALLOCATED")
                 elif 'running' not in power_state:
                     sendError("State " + power_state +
                               " incompatible with VM " + vm['vm_name'])
@@ -158,19 +162,30 @@ def monitorDisks():
 
     for dbDisk in dbDisks:
         try:
+            delete = False
             if dbDisk['state'] == "TO_BE_DELETED":
                 os_disk = CCLIENT.disks.get(
                     os.environ['VM_GROUP'], dbDisk['disk_name'])
                 vm_name = os_disk.managed_by
                 if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
-                    sendInfo("Automatically deleting Disk " +
-                             dbDisk['disk_name'] + "...")
-                    async_disk_delete = CCLIENT.disks.delete(
-                        os.environ['VM_GROUP'],
-                        dbDisk['disk_name']
-                    )
-                    async_disk_delete.wait()
-                    deleteDiskFromTable(dbDisk['disk_name'])
+                    if not dbDisk['delete_date']:
+                        delete = True
+                    else:
+                        expiryTime = datetime.strptime(
+                            dbDisk['delete_date'], '%m/%d/%Y, %H:%M')
+                        now = datetime.utcnow()
+                        if now > expiryTime:
+                            delete = True
+
+            if delete:
+                sendInfo("Automatically deleting Disk " +
+                         dbDisk['disk_name'] + "...")
+                async_disk_delete = CCLIENT.disks.delete(
+                    os.environ['VM_GROUP'],
+                    dbDisk['disk_name']
+                )
+                async_disk_delete.wait()
+                deleteDiskFromTable(dbDisk['disk_name'])
         except:
             reportError("Disk monitor for disk " + dbDisk['disk_name'])
 
