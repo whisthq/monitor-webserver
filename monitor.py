@@ -72,9 +72,13 @@ def monitorVMs():
                 elif 'stopped' in power_state:
                     if vm['state'] != 'STOPPED':
                         updateVMState(vm['vm_name'], "STOPPED")
+                    if vm['lock']:
+                        lockVM(vm['vm_name'], False)
                 elif 'deallocated' in power_state:
                     if vm['state'] != 'DEALLOCATED':
                         updateVMState(vm['vm_name'], "DEALLOCATED")
+                    if vm['lock']:
+                        lockVM(vm['vm_name'], False)
                 elif 'running' not in power_state:
                     sendError("State " + power_state +
                               " incompatible with VM " + vm['vm_name'])
@@ -110,11 +114,11 @@ def monitorVMs():
                             os.environ['VM_GROUP'],
                             vm['vm_name']
                         )
-                        sendInfo("Locking VM " + vm['vm_name'])
+
                         lockVM(vm['vm_name'], True)
                         updateVMState(vm['vm_name'], "DEALLOCATING")
                         async_vm_deallocate.wait()
-                        sendInfo("Unlocking VM " + vm['vm_name'])
+                        updateVMState(vm['vm_name'], "DEALLOCATED")
                         lockVM(vm['vm_name'], False)
                         timesDeallocated += 1
 
@@ -185,7 +189,33 @@ def monitorDisks():
                     dbDisk['disk_name']
                 )
                 async_disk_delete.wait()
+
+                # Send email to support@fractalcomputers.com
+                title = 'Automatically deleted disk for ' + dbDisk['username']
+                message = "The monitor webserver has automatically deleted disk " + \
+                    dbDisk['disk_name'] + " for user " + dbDisk['username']
+                internal_message = SendGridMail(
+                    from_email='jonathan@fractalcomputers.com',
+                    to_emails=['support@fractalcomputers.com'],
+                    subject=title,
+                    html_content=message
+                )
+                sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+                response = sg.send(internal_message)
+
+                # # Send email to user
+                # title = 'Your cloud pc has automatically been deleted'
+                # internal_message = SendGridMail(
+                #     from_email='jonathan@fractalcomputers.com',
+                #     to_emails=[dbDisk['username']],
+                #     subject=title,
+                #     html_content=render_template('disk_deleted.html')
+                # )
+                # sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+                # response = sg.send(internal_message)
+
                 deleteDiskFromTable(dbDisk['disk_name'])
+
         except:
             reportError("Disk monitor for disk " + dbDisk['disk_name'])
 
@@ -218,11 +248,10 @@ def manageRegions():
                         os.environ['VM_GROUP'],
                         vmToAllocate
                     )
-                    sendInfo("Locking VM " + vm['vm_name'])
                     lockVM(vmToAllocate, True)
                     updateVMState(vm['vm_name'], "STARTING")
                     async_vm_alloc.wait()
-                    sendInfo("Unlocking VM " + vm['vm_name'])
+                    updateVMState(vm['vm_name'], "RUNNING")
                     lockVM(vmToAllocate, False)
                 else:
                     sendInfo("Creating VM in region " + location)

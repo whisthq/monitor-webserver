@@ -45,7 +45,7 @@ def reportError(service):
     title = 'Error in monitoring service: [' + service + ']'
     message = error + "\n Occured at " + errorTime
     internal_message = SendGridMail(
-        from_email='mingying2011@gmail.com',
+        from_email='jonathan@fractalcomputers.com',
         to_emails=['logs@fractalcomputers.com'],
         subject=title,
         html_content=message
@@ -112,6 +112,11 @@ def getMostRecentActivity(username):
 
 
 def lockVM(vm_name, lock):
+    if lock:
+        sendInfo("Locking VM " + vm_name)
+    else:
+        sendInfo("Unlocking VM " + vm_name)
+
     command = text("""
         UPDATE v_ms
         SET "lock" = :lock, "last_updated" = :last_updated
