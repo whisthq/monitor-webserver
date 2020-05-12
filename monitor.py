@@ -162,59 +162,77 @@ def monitorLogins():
 
 def monitorDisks():
     print("Monitoring disks...")
+
     dbDisks = fetchAllDisks()
+
+    azureDisks = []
+    disks = CCLIENT.disks.list(
+        resource_group_name=os.environ['VM_GROUP'])
+    for disk in disks:
+        azureDisks.append(disk.name)
 
     for dbDisk in dbDisks:
         try:
-            delete = False
-            if dbDisk['state'] == "TO_BE_DELETED":
-                os_disk = CCLIENT.disks.get(
-                    os.environ['VM_GROUP'], dbDisk['disk_name'])
-                vm_name = os_disk.managed_by
-                if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
-                    if not dbDisk['delete_date']:
-                        delete = True
-                    else:
-                        expiryTime = datetime.strptime(
-                            dbDisk['delete_date'], '%m/%d/%Y, %H:%M')
-                        now = datetime.utcnow()
-                        if now > expiryTime:
-                            delete = True
-
-            if delete:
-                sendInfo("Automatically deleting Disk " +
-                         dbDisk['disk_name'] + "...")
-                async_disk_delete = CCLIENT.disks.delete(
-                    os.environ['VM_GROUP'],
-                    dbDisk['disk_name']
-                )
-                async_disk_delete.wait()
-
-                # Send email to support@fractalcomputers.com
-                title = 'Automatically deleted disk for ' + dbDisk['username']
-                message = "The monitor webserver has automatically deleted disk " + \
-                    dbDisk['disk_name'] + " for user " + dbDisk['username']
-                internal_message = SendGridMail(
-                    from_email='jonathan@fractalcomputers.com',
-                    to_emails=['support@fractalcomputers.com'],
-                    subject=title,
-                    html_content=message
-                )
-                sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-                response = sg.send(internal_message)
-
-                # # Send email to user
-                # title = 'Your cloud pc has automatically been deleted'
-                # internal_message = SendGridMail(
-                #     from_email='jonathan@fractalcomputers.com',
-                #     to_emails=[dbDisk['username']],
-                #     subject=title,
-                #     html_content=render_template('disk_deleted.html')
-                # )
-                # sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-                # response = sg.send(internal_message)
-
+            if dbDisk['disk_name'] not in azureDisks:
                 deleteDiskFromTable(dbDisk['disk_name'])
+                sendInfo("Deleted nonexistent disk " +
+                         dbDisk['disk_name'] + " from database")
+            else:
+                delete = False
+                if dbDisk['state'] == "TO_BE_DELETED":
+                    os_disk = CCLIENT.disks.get(
+                        os.environ['VM_GROUP'], dbDisk['disk_name'])
+                    vm_name = os_disk.managed_by
+                    if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
+                        if not dbDisk['delete_date']:
+                            delete = True
+                        else:
+                            expiryTime = datetime.strptime(
+                                dbDisk['delete_date'], '%m/%d/%Y, %H:%M')
+                            now = datetime.utcnow()
+                            if now > expiryTime:
+                                delete = True
+
+                if delete:
+                    sendInfo("Automatically deleting Disk " +
+                             dbDisk['disk_name'] + "...")
+                    async_disk_delete = CCLIENT.disks.delete(
+                        os.environ['VM_GROUP'],
+                        dbDisk['disk_name']
+                    )
+                    async_disk_delete.wait()
+
+                    deleteDiskFromTable(dbDisk['disk_name'])
+
+                    sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+
+                    # Send email to support@fractalcomputers.com
+                    title = 'Automatically deleted disk for ' + \
+                        dbDisk['username']
+                    message = "The monitor webserver has automatically deleted disk " + \
+                        dbDisk['disk_name'] + " for user " + dbDisk['username']
+                    internal_message = SendGridMail(
+                        from_email='jonathan@fractalcomputers.com',
+                        to_emails=['support@fractalcomputers.com'],
+                        subject=title,
+                        html_content=message
+                    )
+                    response = sg.send(internal_message)
+
+                    # Send email to user
+                    currPath = os.path.abspath(os.path.dirname(sys.argv[0]))
+                    path = os.path.join(currPath, "templates/disk_deleted.txt")
+                    with open(path, 'r') as template:
+                        templateData = template.read()
+
+                    title = 'Your cloud pc has automatically been deleted'
+                    internal_message = SendGridMail(
+                        from_email='jonathan@fractalcomputers.com',
+                        to_emails=[dbDisk['username']],
+                        subject=title,
+                        html_content=templateData
+                    )
+                    response = sg.send(internal_message)
 
         except:
             reportError("Disk monitor for disk " + dbDisk['disk_name'])
@@ -251,7 +269,7 @@ def manageRegions():
                     lockVM(vmToAllocate, True)
                     updateVMState(vm['vm_name'], "STARTING")
                     async_vm_alloc.wait()
-                    updateVMState(vm['vm_name'], "RUNNING")
+                    updateVMState(vm['vm_name'], "RUNNING_AVAILABLE")
                     lockVM(vmToAllocate, False)
                 else:
                     sendInfo("Creating VM in region " + location)
