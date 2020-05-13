@@ -56,7 +56,7 @@ def reportError(service):
     title = 'Error in monitoring service: [' + service + ']'
     message = error + "\n Occured at " + errorTime
     internal_message = SendGridMail(
-        from_email='jonathan@fractalcomputers.com',
+        from_email='noreply@fractalcomputers.com',
         to_emails=['logs@fractalcomputers.com'],
         subject=title,
         html_content=message
