@@ -2,7 +2,7 @@ import time
 import threading
 import traceback
 from datetime import datetime, timedelta
-import os
+import os, sys
 import sqlalchemy
 from sqlalchemy.sql import text
 from haikunator import Haikunator

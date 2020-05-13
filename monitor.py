@@ -72,9 +72,13 @@ def monitorVMs():
                 elif 'stopped' in power_state:
                     if vm['state'] != 'STOPPED':
                         updateVMState(vm['vm_name'], "STOPPED")
+                    if vm['lock']:
+                        lockVM(vm['vm_name'], False)
                 elif 'deallocated' in power_state:
                     if vm['state'] != 'DEALLOCATED':
                         updateVMState(vm['vm_name'], "DEALLOCATED")
+                    if vm['lock']:
+                        lockVM(vm['vm_name'], False)
                 elif 'running' not in power_state:
                     sendError("State " + power_state +
                               " incompatible with VM " + vm['vm_name'])
@@ -110,11 +114,11 @@ def monitorVMs():
                             os.environ['VM_GROUP'],
                             vm['vm_name']
                         )
-                        sendInfo("Locking VM " + vm['vm_name'])
+
                         lockVM(vm['vm_name'], True)
                         updateVMState(vm['vm_name'], "DEALLOCATING")
                         async_vm_deallocate.wait()
-                        sendInfo("Unlocking VM " + vm['vm_name'])
+                        updateVMState(vm['vm_name'], "DEALLOCATED")
                         lockVM(vm['vm_name'], False)
                         timesDeallocated += 1
 
@@ -158,34 +162,78 @@ def monitorLogins():
 
 def monitorDisks():
     print("Monitoring disks...")
+
     dbDisks = fetchAllDisks()
+
+    azureDisks = []
+    disks = CCLIENT.disks.list(
+        resource_group_name=os.environ['VM_GROUP'])
+    for disk in disks:
+        azureDisks.append(disk.name)
 
     for dbDisk in dbDisks:
         try:
-            delete = False
-            if dbDisk['state'] == "TO_BE_DELETED":
-                os_disk = CCLIENT.disks.get(
-                    os.environ['VM_GROUP'], dbDisk['disk_name'])
-                vm_name = os_disk.managed_by
-                if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
-                    if not dbDisk['delete_date']:
-                        delete = True
-                    else:
-                        expiryTime = datetime.strptime(
-                            dbDisk['delete_date'], '%m/%d/%Y, %H:%M')
-                        now = datetime.utcnow()
-                        if now > expiryTime:
-                            delete = True
-
-            if delete:
-                sendInfo("Automatically deleting Disk " +
-                         dbDisk['disk_name'] + "...")
-                async_disk_delete = CCLIENT.disks.delete(
-                    os.environ['VM_GROUP'],
-                    dbDisk['disk_name']
-                )
-                async_disk_delete.wait()
+            if dbDisk['disk_name'] not in azureDisks:
                 deleteDiskFromTable(dbDisk['disk_name'])
+                sendInfo("Deleted nonexistent disk " +
+                         dbDisk['disk_name'] + " from database")
+            else:
+                delete = False
+                if dbDisk['state'] == "TO_BE_DELETED":
+                    os_disk = CCLIENT.disks.get(
+                        os.environ['VM_GROUP'], dbDisk['disk_name'])
+                    vm_name = os_disk.managed_by
+                    if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
+                        if not dbDisk['delete_date']:
+                            delete = True
+                        else:
+                            expiryTime = datetime.strptime(
+                                dbDisk['delete_date'], '%m/%d/%Y, %H:%M')
+                            now = datetime.utcnow()
+                            if now > expiryTime:
+                                delete = True
+
+                if delete:
+                    sendInfo("Automatically deleting Disk " +
+                             dbDisk['disk_name'] + "...")
+                    async_disk_delete = CCLIENT.disks.delete(
+                        os.environ['VM_GROUP'],
+                        dbDisk['disk_name']
+                    )
+                    async_disk_delete.wait()
+
+                    deleteDiskFromTable(dbDisk['disk_name'])
+
+                    sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+
+                    # Send email to support@fractalcomputers.com
+                    title = 'Automatically deleted disk for ' + \
+                        dbDisk['username']
+                    message = "The monitor webserver has automatically deleted disk " + \
+                        dbDisk['disk_name'] + " for user " + dbDisk['username']
+                    internal_message = SendGridMail(
+                        from_email='jonathan@fractalcomputers.com',
+                        to_emails=['support@fractalcomputers.com'],
+                        subject=title,
+                        html_content=message
+                    )
+                    response = sg.send(internal_message)
+
+                    # Send email to user
+                    currPath = os.path.abspath(os.path.dirname(sys.argv[0]))
+                    path = os.path.join(currPath, "templates/disk_deleted.txt")
+                    with open(path, 'r') as template:
+                        templateData = template.read()
+
+                    title = 'Your cloud pc has automatically been deleted'
+                    internal_message = SendGridMail(
+                        from_email='jonathan@fractalcomputers.com',
+                        to_emails=[dbDisk['username']],
+                        subject=title,
+                        html_content=templateData
+                    )
+                    response = sg.send(internal_message)
+
         except:
             reportError("Disk monitor for disk " + dbDisk['disk_name'])
 
@@ -218,11 +266,10 @@ def manageRegions():
                         os.environ['VM_GROUP'],
                         vmToAllocate
                     )
-                    sendInfo("Locking VM " + vm['vm_name'])
                     lockVM(vmToAllocate, True)
                     updateVMState(vm['vm_name'], "STARTING")
                     async_vm_alloc.wait()
-                    sendInfo("Unlocking VM " + vm['vm_name'])
+                    updateVMState(vm['vm_name'], "RUNNING_AVAILABLE")
                     lockVM(vmToAllocate, False)
                 else:
                     sendInfo("Creating VM in region " + location)
