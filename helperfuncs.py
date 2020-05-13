@@ -17,6 +17,14 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
 
 def cleanFetchedSQL(out):
+    """Takes the result of a sql fetch query, and returns it as a list or dictionary
+
+    Args:
+        out (obj): The sqlalchemy return
+
+    Returns:
+        dict, list: Data in dict or list format
+    """
     if out:
         is_list = isinstance(out, list)
         if is_list:
@@ -25,10 +33,13 @@ def cleanFetchedSQL(out):
             return dict(out)
     return None
 
-# Logs error in file and emails to logs@fractalcomputers.com
-
 
 def reportError(service):
+    """"Logs an error message with datetime, service name, and traceback in log.txt file and emails to logs@fractalcomputers.com. Also send an error log to papertrail
+
+    Args:
+        service (str): The name of the service in which the erorr occured
+    """
     error = traceback.format_exc()
     errorTime = datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S')
     msg = "ERROR for " + service + ": " + error
@@ -61,6 +72,11 @@ def reportError(service):
 
 
 def fetchAllVms():
+    """Fetches all the vms in the v_ms sql table
+
+    Returns:
+        list: List of all vms
+    """
     command = text("""
             SELECT * FROM v_ms
             """)
@@ -72,6 +88,14 @@ def fetchAllVms():
 
 
 def getVM(vm_name):
+    """Fetches a vm object from Azure sdk
+
+    Args:
+        vm_name (str): Name of the vm to look for
+
+    Returns:
+        VirtualMachine: The virtual machine object (https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/get#virtualmachine)
+    """
     try:
         virtual_machine = CCLIENT.virtual_machines.get(
             os.environ['VM_GROUP'],
@@ -83,6 +107,12 @@ def getVM(vm_name):
 
 
 def updateVMState(vm_name, state):
+    """Updates the state column of the vm in the v_ms sql table
+
+    Args:
+        vm_name (str): Name of the vm to update
+        state (str): The new state of the vm
+    """
     sendInfo("Automatically updating state for VM " + vm_name + " to " + state)
     command = text("""
         UPDATE v_ms
@@ -97,6 +127,14 @@ def updateVMState(vm_name, state):
 
 
 def getMostRecentActivity(username):
+    """Gets the last activity of a user
+
+    Args:
+        username (str): Username of the user
+
+    Returns:
+        str: The latest activity of the user
+    """
     command = text("""
         SELECT *
         FROM login_history
@@ -112,6 +150,13 @@ def getMostRecentActivity(username):
 
 
 def lockVM(vm_name, lock):
+    """Locks/unlocks a vm. A vm entry with lock set to True prevents other processes from changing that entry.
+
+    Args:
+        vm_name (str): The name of the vm to lock
+        lock (bool): True for lock
+    """
+
     if lock:
         sendInfo("Locking VM " + vm_name)
     else:
@@ -131,6 +176,14 @@ def lockVM(vm_name, lock):
 
 
 def genHaiku(n):
+    """Generates an array of haiku names (no more than 15 characters) using haikunator
+
+    Args:
+        n (int): Length of the array to generate
+
+    Returns:
+        arr: An array of haikus
+    """
     haikunator = Haikunator()
     haikus = [haikunator.haikunate(
         delimiter='') + str(np.random.randint(0, 10000)) for _ in range(0, n)]
@@ -139,6 +192,11 @@ def genHaiku(n):
 
 
 def genVMName():
+    """Generates a unique name for a vm
+
+    Returns:
+        str: The generated name
+    """
     with ENGINE.connect() as conn:
         oldVMs = [cell[0]
                   for cell in list(conn.execute('SELECT "vm_name" FROM v_ms'))]
@@ -149,6 +207,16 @@ def genVMName():
 
 
 def createNic(name, location, tries):
+    """Creates a network id
+
+    Args:
+        name (str): Name of the vm
+        location (str): The azure region
+        tries (int): The current number of tries
+
+    Returns:
+        dict: The network id object
+    """
     vnetName, subnetName, ipName, nicName = name + \
         '_vnet', name + '_subnet', name + '_ip', name + '_nic'
     try:
@@ -215,7 +283,20 @@ def createNic(name, location, tries):
             return None
 
 
-def createVMParameters(vmName, nic_id, vm_size, location):
+def createVMParameters(vmName, nic_id, vm_size, location, operating_system='Windows'):
+    """Adds a vm entry to the SQL database
+
+    Parameters:
+    vmName (str): The name of the VM to add
+    nic_id (str): The vm's network interface ID
+    vm_size (str): The type of vm in terms of specs(default is NV6)
+    location (str): The Azure region of the vm
+    operating_system (str): The operating system of the vm (default is 'Windows')
+
+    Returns:
+    dict: Parameters that will be used in Azure sdk
+   """
+
     with ENGINE.connect() as conn:
         oldUserNames = [cell[0] for cell in list(
             conn.execute('SELECT "username" FROM v_ms'))]
@@ -228,22 +309,57 @@ def createVMParameters(vmName, nic_id, vm_size, location):
             'offer': 'Windows-10',
             'sku': 'rs5-pro',
             'version': 'latest'
+        } if operating_system == 'Windows' else {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "18.04-LTS",
+            "version": "latest"
         }
 
         command = text("""
-            INSERT INTO v_ms("vm_name", "disk_name") 
+            INSERT INTO v_ms("vm_name", "disk_name")
             VALUES(:vmName, :disk_name)
             """)
-        params = {'vmName': vmName, 'disk_name': None}
+        params = {'vmName': vmName,
+                  'username': userName, 'disk_name': None}
         with ENGINE.connect() as conn:
             conn.execute(command, **params)
             conn.close()
+
             return {'params': {
                 'location': location,
                 'os_profile': {
                     'computer_name': vmName,
                     'admin_username': os.getenv('VM_GROUP'),
-                    'admin_password': os.getenv('VM_PASSWORD')
+                    'admin_password': os.getenv('VM_PASSWORD'),
+                    'secrets': [
+                        {
+                            'sourceVault': {
+                                'id': '497f0f14-93c3-46f4-b636-de61e2240a84'
+                            },
+                            'vaultCertificates': [
+                                {
+                                    'certificateUrl': 'https://fractalkeyvault.vault.azure.net/secrets/FractalWinRMSecret/2d88b71f863f4fa88102e1e6fff73522',
+                                    'certificateStore': 'FractalWinRMSecret'
+                                }
+                            ]
+                        }
+                    ],
+                    'windowsConfiguration': {
+                        'provisionVMAgent': True,
+                        'enableAutomaticUpdates': True,
+                        'winRM': {
+                            'listeners': [
+                                {
+                                    'protocol': 'http'
+                                },
+                                {
+                                    'protocol': 'https',
+                                    'certificateUrl': 'https://fractalkeyvault.vault.azure.net/secrets/FractalWinRMSecret/2d88b71f863f4fa88102e1e6fff73522'
+                                }
+                            ]
+                        },
+                    }
                 },
                 'hardware_profile': {
                     'vm_size': vm_size
@@ -256,9 +372,8 @@ def createVMParameters(vmName, nic_id, vm_size, location):
                         'version': vm_reference['version']
                     },
                     'os_disk': {
-                        'os_type': 'Windows',
-                        'create_option': 'FromImage',
-                        'caching': 'ReadOnly'
+                        'os_type': operating_system,
+                        'create_option': 'FromImage'
                     }
                 },
                 'network_profile': {
@@ -270,6 +385,14 @@ def createVMParameters(vmName, nic_id, vm_size, location):
 
 
 def getIP(vm):
+    """Gets the IP address for a vm
+
+    Args:
+        vm (str): The name of the vm
+
+    Returns:
+        str: The ipv4 address
+    """
     ni_reference = vm.network_profile.network_interfaces[0]
     ni_reference = ni_reference.id.split('/')
     ni_group = ni_reference[4]
@@ -286,6 +409,12 @@ def getIP(vm):
 
 
 def updateVMIP(vm_name, ip):
+    """Updates the ip address of a vm
+
+    Args:
+        vm_name (str): The name of the vm to update
+        ip (str): The new ipv4 address
+    """
     command = text("""
         UPDATE v_ms
         SET ip = :ip
@@ -299,6 +428,12 @@ def updateVMIP(vm_name, ip):
 
 
 def updateVMLocation(vm_name, location):
+    """Updates the location of the vm entry in the v_ms sql table
+
+    Args:
+        vm_name (str): Name of vm of interest
+        location (str): The new region of the vm
+    """
     command = text("""
         UPDATE v_ms
         SET location = :location
@@ -312,6 +447,14 @@ def updateVMLocation(vm_name, location):
 
 
 def fetchVMCredentials(vm_name):
+    """Fetches a vm from the v_ms sql table
+
+    Args:
+        vm_name (str): The name of the vm to fetch
+
+    Returns:
+        dict: An object respresenting the respective row in the table
+    """
     command = text("""
         SELECT * FROM v_ms WHERE "vm_name" = :vm_name
         """)
@@ -324,6 +467,15 @@ def fetchVMCredentials(vm_name):
 
 
 def createVM(vm_size, location):
+    """Creates a windows vm of size vm_size in Azure region location
+
+    Args:
+        vm_size (str): The size of the vm to create
+        location (str): The Azure region
+
+    Returns:
+        dict: The dict representing the vm in the v_ms sql table
+    """
     vmName = genVMName()
     nic = createNic(vmName, location, 0)
     if not nic:
@@ -359,6 +511,11 @@ def createVM(vm_size, location):
 
 
 def fetchAllDisks():
+    """Fetches all the disks
+
+    Returns:
+        arr[dict]: An array of all the disks in the disks sql table
+    """
     command = text("""
             SELECT * FROM disks
             """)
@@ -370,6 +527,11 @@ def fetchAllDisks():
 
 
 def deleteDiskFromTable(disk_name):
+    """Deletes a disk from the disks sql table
+
+    Args:
+        disk_name (str): The name of the disk to delete
+    """
     command = text("""
         DELETE FROM disks WHERE "disk_name" = :disk_name 
         """)
@@ -380,6 +542,11 @@ def deleteDiskFromTable(disk_name):
 
 
 def deleteVmFromTable(vm_name):
+    """Deletes a vm from the v_ms sql table
+
+    Args:
+        vm_name (str): The name of the vm to delete
+    """
     command = text("""
         DELETE FROM v_ms WHERE "vm_name" = :vm_name 
         """)
@@ -393,6 +560,15 @@ def deleteVmFromTable(vm_name):
 
 
 def getVMLocationState(location, state):
+    """Gets all vms in location with availability state
+
+    Args:
+        location (str): The Azure region to look in
+        state (str): "available" or "unavailable", which represents if the vm is open to be used
+
+    Returns:
+        array: An array of all vms that satisfy the query
+    """
     # This is a bad way of doing things, hopefully this can be changed if we update the database schema
     if(state == "available"):  # Get VMs that are "available" for users to use
         command = text("""
@@ -431,6 +607,15 @@ def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
 
 
 def getLogons(timestamp, action):
+    """Counts the number of times users have done an action action, since timestamp
+
+    Args:
+        timestamp (str): The datetime formatted as mm-dd-yyyy, hh:mm:ss in 24h format
+        action (str): ['logoff', 'logon']
+
+    Returns:
+        int: The # of actions
+    """
     command = text("""
         SELECT COUNT(*)
         FROM login_history
@@ -467,18 +652,36 @@ logger.setLevel(logging.INFO)
 
 
 def sendInfo(log, papertrail=True):
+    """Logs info messages
+
+    Args:
+        log (str): The message
+        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+    """
     if papertrail:
         logger.info('[MONITOR] INFO: {}'.format(log))
     print('[MONITOR] INFO: {}'.format(log))
 
 
 def sendError(log, papertrail=True):
+    """Logs errors
+
+    Args:
+        log (str): The message
+        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+    """
     if papertrail:
         logger.error('[MONITOR] ERROR: {}'.format(log))
     print('[MONITOR] ERROR: {}'.format(log))
 
 
 def sendCritical(log, papertrail=True):
+    """Logs critical errors
+
+    Args:
+        log (str): The message
+        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+    """
     if papertrail:
         logger.critical('[MONITOR] CRITICAL: {}'.format(log))
     print('[MONITOR] CRITICAL: {}'.format(log))
