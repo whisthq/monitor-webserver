@@ -1,4 +1,4 @@
-# Monitor Webserver
+# Fractal Monitor Webserver
 
 This repo contains the code that runs on our AWS EC2 instance, that monitors for changes in the disks and VMs live, 24/7. Our instance is a basic Ubuntu machine, that can be connected to via SSH and FileZilla.
 
