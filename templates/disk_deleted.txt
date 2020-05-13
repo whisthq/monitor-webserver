@@ -7,14 +7,13 @@
   "
 >
   <div style="text-align: center; margin-bottom: 30px; color: #111111;">
-    <h1>Your cloud pc has been deleted</h1>
+    <h1>Your Fractal cloud computer has been deleted</h1>
   </div>
   <p style="color: #111111;">
     Hi there,
   </p>
   <p style="color: #111111;">
-    We wanted to let you know that your cloud pc has automatically been
-    deleted.
+    We wanted to let you know that your plan was cancelled, or failed to renew, over 7 days ago. Therefore, your Fractal cloud computer has been automatically deleted.
   </p>
   <p style="color: #111111;">
     If you believe this was done in error, please contact
