@@ -212,7 +212,7 @@ def monitorDisks():
                     message = "The monitor webserver has automatically deleted disk " + \
                         dbDisk['disk_name'] + " for user " + dbDisk['username']
                     internal_message = SendGridMail(
-                        from_email='jonathan@fractalcomputers.com',
+                        from_email='noreply@fractalcomputers.com',
                         to_emails=['support@fractalcomputers.com'],
                         subject=title,
                         html_content=message
@@ -225,9 +225,9 @@ def monitorDisks():
                     with open(path, 'r') as template:
                         templateData = template.read()
 
-                    title = 'Your cloud pc has automatically been deleted'
+                    title = 'Your cloud PC has automatically been deleted'
                     internal_message = SendGridMail(
-                        from_email='jonathan@fractalcomputers.com',
+                        from_email='noreply@fractalcomputers.com',
                         to_emails=[dbDisk['username']],
                         subject=title,
                         html_content=templateData
