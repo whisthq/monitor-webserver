@@ -35,7 +35,7 @@ def cleanFetchedSQL(out):
 
 
 def reportError(service):
-    """"Logs an error message with datetime, service name, and traceback in log.txt file and emails to logs@fractalcomputers.com. Also send an error log to papertrail
+    """"Logs an error message with datetime, service name, and traceback in log.txt file. Also send an error log to papertrail
 
     Args:
         service (str): The name of the service in which the erorr occured
@@ -53,22 +53,22 @@ def reportError(service):
     sendError(msg)
 
     # Send error email to logs@fractalcomputers.com
-    title = 'Error in monitoring service: [' + service + ']'
-    message = error + "\n Occured at " + errorTime
-    internal_message = SendGridMail(
-        from_email='noreply@fractalcomputers.com',
-        to_emails=['logs@fractalcomputers.com'],
-        subject=title,
-        html_content=message
-    )
-    try:
-        sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-        response = sg.send(internal_message)
-    except:
-        file = open("log.txt", "a")
-        file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
-                   " ERROR while reporting error: " + traceback.format_exc())
-        file.close()
+    # title = 'Error in monitoring service: [' + service + ']'
+    # message = error + "\n Occured at " + errorTime
+    # internal_message = SendGridMail(
+    #     from_email='jonathan@fractalcomputers.com',
+    #     to_emails=['logs@fractalcomputers.com'],
+    #     subject=title,
+    #     html_content=message
+    # )
+    # try:
+    #     sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+    #     response = sg.send(internal_message)
+    # except:
+    #     file = open("log.txt", "a")
+    #     file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
+    #                " ERROR while reporting error: " + traceback.format_exc())
+    #     file.close()
 
 
 def fetchAllVms():
@@ -332,34 +332,6 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system='Wind
                     'computer_name': vmName,
                     'admin_username': os.getenv('VM_GROUP'),
                     'admin_password': os.getenv('VM_PASSWORD'),
-                    'secrets': [
-                        {
-                            'sourceVault': {
-                                'id': '497f0f14-93c3-46f4-b636-de61e2240a84'
-                            },
-                            'vaultCertificates': [
-                                {
-                                    'certificateUrl': 'https://fractalkeyvault.vault.azure.net/secrets/FractalWinRMSecret/2d88b71f863f4fa88102e1e6fff73522',
-                                    'certificateStore': 'FractalWinRMSecret'
-                                }
-                            ]
-                        }
-                    ],
-                    'windowsConfiguration': {
-                        'provisionVMAgent': True,
-                        'enableAutomaticUpdates': True,
-                        'winRM': {
-                            'listeners': [
-                                {
-                                    'protocol': 'http'
-                                },
-                                {
-                                    'protocol': 'https',
-                                    'certificateUrl': 'https://fractalkeyvault.vault.azure.net/secrets/FractalWinRMSecret/2d88b71f863f4fa88102e1e6fff73522'
-                                }
-                            ]
-                        },
-                    }
                 },
                 'hardware_profile': {
                     'vm_size': vm_size
