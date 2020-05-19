@@ -25,7 +25,7 @@ Heroku Dashboard: https://dashboard.heroku.com/apps/fractal-monitor-server
 5. Type `python monitor.py` to start the monitor locally.
 -->
 
-## Run on Heroku
+# Run on Heroku
 
 `https://git.heroku.com/fractal-monitor-server.git`
 
@@ -42,11 +42,13 @@ The server also logs INFO, WARNING, ERROR, and CRITICAL logs to PaperTrail, as [
 
 To view the current running processes, type `heroku ps`.
 
-## Styling
+# Styling
 
 To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode.
 
-### Python Black on VSCode
+## Python Black
+
+### VSCode
 
 1. Install it on your virtual env or in your local python with the command:
 
@@ -66,3 +68,19 @@ ext install ms-python.python
 6. Now open/create a python file, write some code and save(Ctrl+s) it to see the magic happen!
 
 <sub>[Source](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)</sub>
+
+## [Sublime](https://github.com/jgirardet/sublack)
+
+## [CLI](https://github.com/psf/black)
+
+Installation:  
+Black can be installed by running `pip install black`. It requires Python 3.6.0+ to run but you can reformat Python 2 code with it, too.
+
+Usage:  
+To get started right away with sensible defaults:
+
+```
+black {source_file_or_directory}
+```
+
+Black doesn't provide many options. You can list them by running `black --help`:
