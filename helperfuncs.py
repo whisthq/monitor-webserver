@@ -656,7 +656,7 @@ syslog.setFormatter(formatter)
 
 logger = logging.getLogger()
 logger.addHandler(syslog)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def sendDebug(log, papertrail=True):

@@ -79,6 +79,20 @@ To exit screen, press `ctrl+A+D` on Windows. To reenter screen, type `screen -r`
 
 To kill the screen you're in, press `ctrl + a` and then press `k`, then press `y`
 
+## Run on Heroku
+
+`https://git.heroku.com/fractal-monitor-server.git`
+
+To push to the Herokuservers, you’ll first need to set up the Heroku CLI on your computer.
+
+First, add the Heroku server as a remote:
+
+To push to the server, first make sure you’re in your own branch, then type `git add .`, then `git commit -m “COMMIT MESSAGE”`, then finally `git push heroku {YOUR_BRANCH_NAME}:master`. If you get a git pull error, git pull by typing `git pull heorku master` to pull from Heroku or `git pull origin master` to pull from Github.
+
+To run the monitor script, type `heroku run python monitor.py`.
+
+To view the server logs, type `heroku logs --tail --remote staging`.
+
 ## Styling
 
 To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode.
