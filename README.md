@@ -1,80 +1,86 @@
 # Fractal Monitor Webserver
 
-This repo contains the code that runs on our AWS EC2 instance, that monitors for changes in the disks and VMs live, 24/7. Our instance is a basic Ubuntu machine, that can be connected to via SSH and FileZilla.
+This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the heroku CLI.
 
-## Set up
+Heroku: https://fractal-monitor-server.herokuapp.com
 
-### SSH to the EC2 instance
+Heroku Dashboard: https://dashboard.heroku.com/apps/fractal-monitor-server
 
-This readme covers how to connect to the instance via Putty.
+<!--
+### Local setup (Windows/MacOS)
 
-1. Install PuTTY on your computer.
-   - (Linux) Install PuTTYGen on your computer
-2. Obtain the private SSH key to connect to the instance. You can contact Jonathan or Ming for the key.
-3. Use PuTTYGen to convert the key from `.pem` format to `.ppk`, the PuTTY format.
+1. Set up the Heroku CLI on your computer
+2. Check your python version by typing `python -V`.
 
-- (Windows)
-  - Open PuTTYGen and click the 'Load' button, in the field 'Load an existing private key file'
-  - List all file types in the file explorer, and select the `.pem` key you obtained. It should be named `MonitorServer.pem` by default.
-  - In the 'Parameters' field, select 'RSA' and set '2048' for 'Number of bits in a generated key'.
-  - Save the key as a private key.
-- (Linux)
-  - Run the following:
-    ```shell
-    sudo apt install putty-tools
-    puttygen FractalMonitor.pem -O private -o FractalMonitor.ppk
-    ```
+- If you have python 3.6.X:
+  - Create a virtual environment for yourself by typing `virtualenv env` and then run the python executable listed in the install text, i.e. `source env\Scripts\activate` in Windows, or `source env/bin/activate` on Linux
+- If you have Python >3.6 or Python <3.0:
 
-4. Open PuTTY
-   - (Windows)
-     - Set the 'hostname' field to `ubuntu@ec2-52-91-235-140.compute-1.amazonaws.com`
-   - (Linux)
-     - Set the 'hostname' field to `ec2-52-91-235-140.compute-1.amazonaws.com`
-   - Set the 'port' field to `22`
-   - On the settings bar on the left, select 'connection > SSH > auth'. In the field 'Priavte key file for authentication', hit the 'Browse' button, and select the `.ppk` file you generated.
-   - Save your SSH profile under 'session' by giving it a name and clicking the 'save' button.
-   - Press the 'open' button.
-   - (Linux)
-     - When prompted for the username, enter `ubuntu`
+  - Create a Python 3.6 virtual environment. To do this, first install python 3.6.8 from the Python website.
+  - Find the directory where python.exe is installed. Make sure you are cd'ed into the vm-monitor folder, then type `virtualenv --python=[DIRECTORY PATH] venv` in your terminal. The terminal should output a "created virtual environment CPython3.6.8" message.
+  - Activate it by typing `source venv\Scripts\activate` (Windows) or `source venv/bin/activate` (MacOS/Linux). You will need to type this last command every time to access your virtual environment.
 
-### FTP to the EC2 instance
+3. Install everything by typing `pip install -r requirements.txt`. Make sure you're in the virtual environment when doing this.
+4. Import the environment variables into your computer by typing `heroku config -s --app fractal-monitor-server >> .env`.
+5. Type `python monitor.py` to start the monitor locally.
+-->
 
-This readme covers how to send files to the instance via FileZilla.
+# Run on Heroku
 
-1. Install FileZilla Client.
-2. Under 'File > Site Manager' (ctrl-S), create a 'New site'
-3. Set the 'Protocol' field to `SFTP`, 'Host' field to `ec2-52-91-235-140.compute-1.amazonaws.com`, 'Logon Type' field to `Key file`, 'User' field to `ubuntu`, and browse for the `.ppk` file for the 'Key File' field.
-4. Hit the 'Conect' button, and transfer files using FTP.
+`https://git.heroku.com/fractal-monitor-server.git`
 
-## Interfacing
+To push to the Heroku servers, you’ll first need to set up the Heroku CLI on your computer.
 
-### Environment variables
+First, add the Heroku server as a remote: `heroku git:remote -a fractal-monitor-server`. You will need to be added as a collaboartor for the fractal-monitor-server Heroku app. Contact Ming, Phil or Jonathan to be added.
 
-**Load environment variables:**
+To push to the server, first make sure you’re in your own branch, then type `git add .`, then `git commit -m “{COMMIT_MESSAGE}”`, then finally `git push heroku {YOUR_BRANCH_NAME}:master`. If you get a git pull error, git pull by typing `git pull heorku master` to pull from Heroku or `git pull origin master` to pull from Github.
 
-1. On SSH, run: `source ~/.bashrc`
-   _Note_: You will have to source bashrc for each screen instance you make.
+To run the monitor script, type `heroku run:detached python monitor.py`.
 
-**Read environment variables in python3:**
+To view the verbose server logs, type `heroku logs --tail`.  
+The server also logs INFO, WARNING, ERROR, and CRITICAL logs to PaperTrail, as [MONITOR].
 
-Example code:
+To view the current running processes, type `heroku ps`.
 
-```python
-import os
-print(os.environ['LOCATION'])
+# Styling
+
+To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode.
+
+## Python Black
+
+### VSCode
+
+1. Install it on your virtual env or in your local python with the command:
+
+```
+$ pip install black
 ```
 
-**Change environment variables:**
+2. Now install the python extension for VS-Code, open your VS-Code and type “Ctrl + p”, paste the line bellow and hit enter:
 
-1. On FileZilla Client, copy the `.bashrc` file from the EC2 instance to your local computer.
-2. Make the necessary changes, like adding an environment variable to the end: `export TEST_VAR='Hello world!'`
-3. Save the file, and overwrite the existing file on the EC2 instance using FileZilla.
-4. On SSH, run: `source ~/.bashrc`
+```
+ext install ms-python.python
+```
 
-### Run scripts concurrently
+3. Go to the settings in your VS-Code typing “Ctrl + ,” or clicking at the gear on the bottom left and selecting “Settings [Ctrl+,]” option.
+4. Type “format on save” at the search bar on top of the Settings tab and check the box.
+5. Search for “python formatting provider” and select “black”.
+6. Now open/create a python file, write some code and save(Ctrl+s) it to see the magic happen!
 
-On the Ubuntu EC2 instance, you can simply type `screen` to open a new terminal screen in SSH without interfering with your other screens. You can run Python scripts here 24/7.
+<sub>[Source](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)</sub>
 
-To exit screen, press `ctrl+A+D` on Windows. To reenter screen, type `screen -r`.
+## [Sublime](https://github.com/jgirardet/sublack)
 
-To kill the screen you're in, press `ctrl + a` and then press `k`, then press `y`
+## [CLI](https://github.com/psf/black)
+
+Installation:  
+Black can be installed by running `pip install black`. It requires Python 3.6.0+ to run but you can reformat Python 2 code with it, too.
+
+Usage:  
+To get started right away with sensible defaults:
+
+```
+black {source_file_or_directory}
+```
+
+Black doesn't provide many options. You can list them by running `black --help`:

@@ -1,2 +1,4 @@
 .bashrc
 log.txt
+venv/
+__pycache__/

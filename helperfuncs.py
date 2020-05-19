@@ -2,14 +2,15 @@ from imports import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
-    os.environ['DATABASE_URL'], echo=False, pool_pre_ping=True)
+    os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True
+)
 
 # Get Azure clients
-subscription_id = os.environ['AZURE_SUBSCRIPTION_ID']
+subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 credentials = ServicePrincipalCredentials(
-    client_id=os.environ['AZURE_CLIENT_ID'],
-    secret=os.environ['AZURE_CLIENT_SECRET'],
-    tenant=os.environ['AZURE_TENANT_ID']
+    client_id=os.getenv("AZURE_CLIENT_ID"),
+    secret=os.getenv("AZURE_CLIENT_SECRET"),
+    tenant=os.getenv("AZURE_TENANT_ID"),
 )
 RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
@@ -35,40 +36,40 @@ def cleanFetchedSQL(out):
 
 
 def reportError(service):
-    """"Logs an error message with datetime, service name, and traceback in log.txt file and emails to logs@fractalcomputers.com. Also send an error log to papertrail
+    """"Logs an error message with datetime, service name, and traceback in log.txt file. Also send an error log to papertrail
 
     Args:
         service (str): The name of the service in which the erorr occured
     """
     error = traceback.format_exc()
-    errorTime = datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S')
+    errorTime = datetime.utcnow().strftime("%m-%d-%Y, %H:%M:%S")
     msg = "ERROR for " + service + ": " + error
 
     # Log error in log.txt
-    file = open("log.txt", "a")
-    file.write(errorTime + " " + msg)
-    file.close()
+    # file = open("log.txt", "a")
+    # file.write(errorTime + " " + msg)
+    # file.close()
 
     # Send log to Papertrail
     sendError(msg)
 
     # Send error email to logs@fractalcomputers.com
-    title = 'Error in monitoring service: [' + service + ']'
-    message = error + "\n Occured at " + errorTime
-    internal_message = SendGridMail(
-        from_email='noreply@fractalcomputers.com',
-        to_emails=['logs@fractalcomputers.com'],
-        subject=title,
-        html_content=message
-    )
-    try:
-        sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-        response = sg.send(internal_message)
-    except:
-        file = open("log.txt", "a")
-        file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
-                   " ERROR while reporting error: " + traceback.format_exc())
-        file.close()
+    # title = 'Error in monitoring service: [' + service + ']'
+    # message = error + "\n Occured at " + errorTime
+    # internal_message = SendGridMail(
+    #     from_email='jonathan@fractalcomputers.com',
+    #     to_emails=['logs@fractalcomputers.com'],
+    #     subject=title,
+    #     html_content=message
+    # )
+    # try:
+    #     sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
+    #     response = sg.send(internal_message)
+    # except:
+    #     file = open("log.txt", "a")
+    #     file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
+    #                " ERROR while reporting error: " + traceback.format_exc())
+    #     file.close()
 
 
 def fetchAllVms():
@@ -77,9 +78,11 @@ def fetchAllVms():
     Returns:
         list: List of all vms
     """
-    command = text("""
+    command = text(
+        """
             SELECT * FROM v_ms
-            """)
+            """
+    )
     params = {}
     with ENGINE.connect() as conn:
         vms_info = cleanFetchedSQL(conn.execute(command, **params).fetchall())
@@ -97,10 +100,7 @@ def getVM(vm_name):
         VirtualMachine: The virtual machine object (https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/get#virtualmachine)
     """
     try:
-        virtual_machine = CCLIENT.virtual_machines.get(
-            os.environ['VM_GROUP'],
-            vm_name
-        )
+        virtual_machine = CCLIENT.virtual_machines.get(os.getenv("VM_GROUP"), vm_name)
         return virtual_machine
     except:
         return None
@@ -114,13 +114,15 @@ def updateVMState(vm_name, state):
         state (str): The new state of the vm
     """
     sendInfo("Automatically updating state for VM " + vm_name + " to " + state)
-    command = text("""
+    command = text(
+        """
         UPDATE v_ms
         SET state = :state
         WHERE
            "vm_name" = :vm_name
-        """)
-    params = {'vm_name': vm_name, 'state': state}
+        """
+    )
+    params = {"vm_name": vm_name, "state": state}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -135,14 +137,16 @@ def getMostRecentActivity(username):
     Returns:
         str: The latest activity of the user
     """
-    command = text("""
+    command = text(
+        """
         SELECT *
         FROM login_history
         WHERE "username" = :username
         ORDER BY timestamp DESC LIMIT 1
-        """)
+        """
+    )
 
-    params = {'username': username}
+    params = {"username": username}
 
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
@@ -162,14 +166,16 @@ def lockVM(vm_name, lock):
     else:
         sendInfo("Unlocking VM " + vm_name)
 
-    command = text("""
+    command = text(
+        """
         UPDATE v_ms
         SET "lock" = :lock, "last_updated" = :last_updated
         WHERE
            "vm_name" = :vm_name
-        """)
-    last_updated = datetime.utcnow().strftime('%m/%d/%Y, %H:%M')
-    params = {'vm_name': vm_name, 'lock': lock, 'last_updated': last_updated}
+        """
+    )
+    last_updated = datetime.utcnow().strftime("%m/%d/%Y, %H:%M")
+    params = {"vm_name": vm_name, "lock": lock, "last_updated": last_updated}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -185,9 +191,11 @@ def genHaiku(n):
         arr: An array of haikus
     """
     haikunator = Haikunator()
-    haikus = [haikunator.haikunate(
-        delimiter='') + str(np.random.randint(0, 10000)) for _ in range(0, n)]
-    haikus = [haiku[0: np.min([15, len(haiku)])] for haiku in haikus]
+    haikus = [
+        haikunator.haikunate(delimiter="") + str(np.random.randint(0, 10000))
+        for _ in range(0, n)
+    ]
+    haikus = [haiku[0 : np.min([15, len(haiku)])] for haiku in haikus]
     return haikus
 
 
@@ -198,8 +206,7 @@ def genVMName():
         str: The generated name
     """
     with ENGINE.connect() as conn:
-        oldVMs = [cell[0]
-                  for cell in list(conn.execute('SELECT "vm_name" FROM v_ms'))]
+        oldVMs = [cell[0] for cell in list(conn.execute('SELECT "vm_name" FROM v_ms'))]
         vmName = genHaiku(1)[0]
         while vmName in oldVMs:
             vmName = genHaiku(1)[0]
@@ -217,59 +224,59 @@ def createNic(name, location, tries):
     Returns:
         dict: The network id object
     """
-    vnetName, subnetName, ipName, nicName = name + \
-        '_vnet', name + '_subnet', name + '_ip', name + '_nic'
+    vnetName, subnetName, ipName, nicName = (
+        name + "_vnet",
+        name + "_subnet",
+        name + "_ip",
+        name + "_nic",
+    )
     try:
         async_vnet_creation = NCLIENT.virtual_networks.create_or_update(
-            os.environ['VM_GROUP'],
+            os.getenv("VM_GROUP"),
             vnetName,
             {
-                'location': location,
-                'address_space': {
-                    'address_prefixes': ['10.0.0.0/16']
-                }
-            }
+                "location": location,
+                "address_space": {"address_prefixes": ["10.0.0.0/16"]},
+            },
         )
         async_vnet_creation.wait()
 
         # Create Subnet
         async_subnet_creation = NCLIENT.subnets.create_or_update(
-            os.environ['VM_GROUP'],
+            os.getenv("VM_GROUP"),
             vnetName,
             subnetName,
-            {'address_prefix': '10.0.0.0/24'}
+            {"address_prefix": "10.0.0.0/24"},
         )
         subnet_info = async_subnet_creation.result()
 
         # Create public IP address
         public_ip_addess_params = {
-            'location': location,
-            'public_ip_allocation_method': 'Static'
+            "location": location,
+            "public_ip_allocation_method": "Static",
         }
         creation_result = NCLIENT.public_ip_addresses.create_or_update(
-            os.environ['VM_GROUP'],
-            ipName,
-            public_ip_addess_params
+            os.getenv("VM_GROUP"), ipName, public_ip_addess_params
         )
 
         public_ip_address = NCLIENT.public_ip_addresses.get(
-            os.environ['VM_GROUP'],
-            ipName)
+            os.getenv("VM_GROUP"), ipName
+        )
 
         # Create NIC
         async_nic_creation = NCLIENT.network_interfaces.create_or_update(
-            os.environ['VM_GROUP'],
+            os.getenv("VM_GROUP"),
             nicName,
             {
-                'location': location,
-                'ip_configurations': [{
-                    'name': ipName,
-                    'public_ip_address': public_ip_address,
-                    'subnet': {
-                        'id': subnet_info.id
+                "location": location,
+                "ip_configurations": [
+                    {
+                        "name": ipName,
+                        "public_ip_address": public_ip_address,
+                        "subnet": {"id": subnet_info.id},
                     }
-                }]
-            }
+                ],
+            },
         )
 
         return async_nic_creation.result()
@@ -283,7 +290,7 @@ def createNic(name, location, tries):
             return None
 
 
-def createVMParameters(vmName, nic_id, vm_size, location, operating_system='Windows'):
+def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Windows"):
     """Adds a vm entry to the SQL database
 
     Parameters:
@@ -298,90 +305,65 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system='Wind
    """
 
     with ENGINE.connect() as conn:
-        oldUserNames = [cell[0] for cell in list(
-            conn.execute('SELECT "username" FROM v_ms'))]
+        oldUserNames = [
+            cell[0] for cell in list(conn.execute('SELECT "username" FROM v_ms'))
+        ]
         userName = genHaiku(1)[0]
         while userName in oldUserNames:
             userName = genHaiku(1)
 
-        vm_reference = {
-            'publisher': 'MicrosoftWindowsDesktop',
-            'offer': 'Windows-10',
-            'sku': 'rs5-pro',
-            'version': 'latest'
-        } if operating_system == 'Windows' else {
-            "publisher": "Canonical",
-            "offer": "UbuntuServer",
-            "sku": "18.04-LTS",
-            "version": "latest"
-        }
+        vm_reference = (
+            {
+                "publisher": "MicrosoftWindowsDesktop",
+                "offer": "Windows-10",
+                "sku": "rs5-pro",
+                "version": "latest",
+            }
+            if operating_system == "Windows"
+            else {
+                "publisher": "Canonical",
+                "offer": "UbuntuServer",
+                "sku": "18.04-LTS",
+                "version": "latest",
+            }
+        )
 
-        command = text("""
+        command = text(
+            """
             INSERT INTO v_ms("vm_name", "disk_name")
             VALUES(:vmName, :disk_name)
-            """)
-        params = {'vmName': vmName,
-                  'username': userName, 'disk_name': None}
+            """
+        )
+        params = {"vmName": vmName, "username": userName, "disk_name": None}
         with ENGINE.connect() as conn:
             conn.execute(command, **params)
             conn.close()
 
-            return {'params': {
-                'location': location,
-                'os_profile': {
-                    'computer_name': vmName,
-                    'admin_username': os.getenv('VM_GROUP'),
-                    'admin_password': os.getenv('VM_PASSWORD'),
-                    'secrets': [
-                        {
-                            'sourceVault': {
-                                'id': '497f0f14-93c3-46f4-b636-de61e2240a84'
-                            },
-                            'vaultCertificates': [
-                                {
-                                    'certificateUrl': 'https://fractalkeyvault.vault.azure.net/secrets/FractalWinRMSecret/2d88b71f863f4fa88102e1e6fff73522',
-                                    'certificateStore': 'FractalWinRMSecret'
-                                }
-                            ]
-                        }
-                    ],
-                    'windowsConfiguration': {
-                        'provisionVMAgent': True,
-                        'enableAutomaticUpdates': True,
-                        'winRM': {
-                            'listeners': [
-                                {
-                                    'protocol': 'http'
-                                },
-                                {
-                                    'protocol': 'https',
-                                    'certificateUrl': 'https://fractalkeyvault.vault.azure.net/secrets/FractalWinRMSecret/2d88b71f863f4fa88102e1e6fff73522'
-                                }
-                            ]
-                        },
-                    }
-                },
-                'hardware_profile': {
-                    'vm_size': vm_size
-                },
-                'storage_profile': {
-                    'image_reference': {
-                        'publisher': vm_reference['publisher'],
-                        'offer': vm_reference['offer'],
-                        'sku': vm_reference['sku'],
-                        'version': vm_reference['version']
+            return {
+                "params": {
+                    "location": location,
+                    "os_profile": {
+                        "computer_name": vmName,
+                        "admin_username": os.getenv("VM_GROUP"),
+                        "admin_password": os.getenv("VM_PASSWORD"),
                     },
-                    'os_disk': {
-                        'os_type': operating_system,
-                        'create_option': 'FromImage'
-                    }
+                    "hardware_profile": {"vm_size": vm_size},
+                    "storage_profile": {
+                        "image_reference": {
+                            "publisher": vm_reference["publisher"],
+                            "offer": vm_reference["offer"],
+                            "sku": vm_reference["sku"],
+                            "version": vm_reference["version"],
+                        },
+                        "os_disk": {
+                            "os_type": operating_system,
+                            "create_option": "FromImage",
+                        },
+                    },
+                    "network_profile": {"network_interfaces": [{"id": nic_id,}]},
                 },
-                'network_profile': {
-                    'network_interfaces': [{
-                        'id': nic_id,
-                    }]
-                },
-            }, 'vm_name': vmName}
+                "vm_name": vmName,
+            }
 
 
 def getIP(vm):
@@ -394,13 +376,13 @@ def getIP(vm):
         str: The ipv4 address
     """
     ni_reference = vm.network_profile.network_interfaces[0]
-    ni_reference = ni_reference.id.split('/')
+    ni_reference = ni_reference.id.split("/")
     ni_group = ni_reference[4]
     ni_name = ni_reference[8]
 
     net_interface = NCLIENT.network_interfaces.get(ni_group, ni_name)
     ip_reference = net_interface.ip_configurations[0].public_ip_address
-    ip_reference = ip_reference.id.split('/')
+    ip_reference = ip_reference.id.split("/")
     ip_group = ip_reference[4]
     ip_name = ip_reference[8]
 
@@ -415,13 +397,15 @@ def updateVMIP(vm_name, ip):
         vm_name (str): The name of the vm to update
         ip (str): The new ipv4 address
     """
-    command = text("""
+    command = text(
+        """
         UPDATE v_ms
         SET ip = :ip
         WHERE
            "vm_name" = :vm_name
-        """)
-    params = {'ip': ip, 'vm_name': vm_name}
+        """
+    )
+    params = {"ip": ip, "vm_name": vm_name}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -434,13 +418,15 @@ def updateVMLocation(vm_name, location):
         vm_name (str): Name of vm of interest
         location (str): The new region of the vm
     """
-    command = text("""
+    command = text(
+        """
         UPDATE v_ms
         SET location = :location
         WHERE
            "vm_name" = :vm_name
-        """)
-    params = {'vm_name': vm_name, 'location': location}
+        """
+    )
+    params = {"vm_name": vm_name, "location": location}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -455,10 +441,12 @@ def fetchVMCredentials(vm_name):
     Returns:
         dict: An object respresenting the respective row in the table
     """
-    command = text("""
+    command = text(
+        """
         SELECT * FROM v_ms WHERE "vm_name" = :vm_name
-        """)
-    params = {'vm_name': vm_name}
+        """
+    )
+    params = {"vm_name": vm_name}
     with ENGINE.connect() as conn:
         vm_info = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         # Decode password
@@ -482,32 +470,38 @@ def createVM(vm_size, location):
         return
     vmParameters = createVMParameters(vmName, nic.id, vm_size, location)
     async_vm_creation = CCLIENT.virtual_machines.create_or_update(
-        os.environ['VM_GROUP'], vmParameters['vm_name'], vmParameters['params'])
+        os.getenv("VM_GROUP"), vmParameters["vm_name"], vmParameters["params"]
+    )
     async_vm_creation.wait()
 
     extension_parameters = {
-        'location': location,
-        'publisher': 'Microsoft.HpcCompute',
-        'vm_extension_name': 'NvidiaGpuDriverWindows',
-        'virtual_machine_extension_type': 'NvidiaGpuDriverWindows',
-        'type_handler_version': '1.2'
+        "location": location,
+        "publisher": "Microsoft.HpcCompute",
+        "vm_extension_name": "NvidiaGpuDriverWindows",
+        "virtual_machine_extension_type": "NvidiaGpuDriverWindows",
+        "type_handler_version": "1.2",
     }
 
-    async_vm_extension = CCLIENT.virtual_machine_extensions.create_or_update(os.environ['VM_GROUP'],
-                                                                             vmParameters['vm_name'], 'NvidiaGpuDriverWindows', extension_parameters)
+    async_vm_extension = CCLIENT.virtual_machine_extensions.create_or_update(
+        os.getenv("VM_GROUP"),
+        vmParameters["vm_name"],
+        "NvidiaGpuDriverWindows",
+        extension_parameters,
+    )
     async_vm_extension.wait()
 
     async_vm_start = CCLIENT.virtual_machines.start(
-        os.environ['VM_GROUP'], vmParameters['vm_name'])
+        os.getenv("VM_GROUP"), vmParameters["vm_name"]
+    )
     async_vm_start.wait()
 
-    vm = getVM(vmParameters['vm_name'])
+    vm = getVM(vmParameters["vm_name"])
     vm_ip = getIP(vm)
-    updateVMIP(vmParameters['vm_name'], vm_ip)
-    updateVMState(vmParameters['vm_name'], 'RUNNING_AVAILABLE')
-    updateVMLocation(vmParameters['vm_name'], location)
+    updateVMIP(vmParameters["vm_name"], vm_ip)
+    updateVMState(vmParameters["vm_name"], "RUNNING_AVAILABLE")
+    updateVMLocation(vmParameters["vm_name"], location)
 
-    return fetchVMCredentials(vmParameters['vm_name'])
+    return fetchVMCredentials(vmParameters["vm_name"])
 
 
 def fetchAllDisks():
@@ -516,9 +510,11 @@ def fetchAllDisks():
     Returns:
         arr[dict]: An array of all the disks in the disks sql table
     """
-    command = text("""
+    command = text(
+        """
             SELECT * FROM disks
-            """)
+            """
+    )
     params = {}
     with ENGINE.connect() as conn:
         disks = cleanFetchedSQL(conn.execute(command, **params).fetchall())
@@ -532,10 +528,12 @@ def deleteDiskFromTable(disk_name):
     Args:
         disk_name (str): The name of the disk to delete
     """
-    command = text("""
+    command = text(
+        """
         DELETE FROM disks WHERE "disk_name" = :disk_name 
-        """)
-    params = {'disk_name': disk_name}
+        """
+    )
+    params = {"disk_name": disk_name}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -547,18 +545,18 @@ def deleteVmFromTable(vm_name):
     Args:
         vm_name (str): The name of the vm to delete
     """
-    command = text("""
+    command = text(
+        """
         DELETE FROM v_ms WHERE "vm_name" = :vm_name 
-        """)
-    params = {'vm_name': vm_name}
+        """
+    )
+    params = {"vm_name": vm_name}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
 
 
 # Gets all VMs from database with specified location and state
-
-
 def getVMLocationState(location, state):
     """Gets all vms in location with availability state
 
@@ -570,15 +568,19 @@ def getVMLocationState(location, state):
         array: An array of all vms that satisfy the query
     """
     # This is a bad way of doing things, hopefully this can be changed if we update the database schema
-    if(state == "available"):  # Get VMs that are "available" for users to use
-        command = text("""
+    if state == "available":  # Get VMs that are "available" for users to use
+        command = text(
+            """
         SELECT * FROM v_ms WHERE ("location" = :location AND "state" = 'RUNNING_AVAILABLE' AND "dev" = 'false')
-        """)
-    elif (state == "unavailable"):  # Get deallocated VMs (not running)
-        command = text("""
+        """
+        )
+    elif state == "unavailable":  # Get deallocated VMs (not running)
+        command = text(
+            """
         SELECT * FROM v_ms WHERE ("location" = :location AND "dev" = 'false' AND "state" = 'DEALLOCATED')
-        """)
-    params = {'location': location}
+        """
+        )
+    params = {"location": location}
     with ENGINE.connect() as conn:
         vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
@@ -586,21 +588,25 @@ def getVMLocationState(location, state):
 
 
 def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
-    command = text("""
+    command = text(
+        """
         INSERT INTO status_report("timestamp", "deallocated_vms", "total_vms_deallocated", "logons", "logoffs", "number_users_eastus", "number_vms_eastus", "number_users_southcentralus", "number_vms_southcentralus", "number_users_northcentralus", "number_vms_northcentralus") 
         VALUES(:timestamp, :deallocated_vms, :total_vms_deallocated, :logons, :logoffs, :number_users_eastus, :number_vms_eastus, :number_users_southcentralus, :number_vms_southcentralus, :number_users_northcentralus, :number_vms_northcentralus)
-        """)
-    params = {"timestamp": ts,
-              "deallocated_vms": deallocVm,
-              "total_vms_deallocated": totalDealloc,
-              "logons": logons,
-              "logoffs": logoffs,
-              "number_users_eastus": users['eastus'],
-              "number_vms_eastus": vms['eastus'],
-              "number_users_southcentralus": users['southcentralus'],
-              "number_vms_southcentralus": vms['southcentralus'],
-              "number_users_northcentralus": users['northcentralus'],
-              "number_vms_northcentralus": vms['northcentralus']}
+        """
+    )
+    params = {
+        "timestamp": ts,
+        "deallocated_vms": deallocVm,
+        "total_vms_deallocated": totalDealloc,
+        "logons": logons,
+        "logoffs": logoffs,
+        "number_users_eastus": users["eastus"],
+        "number_vms_eastus": vms["eastus"],
+        "number_users_southcentralus": users["southcentralus"],
+        "number_vms_southcentralus": vms["southcentralus"],
+        "number_users_northcentralus": users["northcentralus"],
+        "number_vms_northcentralus": vms["northcentralus"],
+    }
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -616,21 +622,22 @@ def getLogons(timestamp, action):
     Returns:
         int: The # of actions
     """
-    command = text("""
+    command = text(
+        """
         SELECT COUNT(*)
         FROM login_history
         WHERE "action" = :action AND "timestamp" > :timestamp
-        """)
+        """
+    )
 
-    params = {'timestamp': timestamp, 'action': action}
+    params = {"timestamp": timestamp, "action": action}
 
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         return activity
 
+
 # Logging
-
-
 class ContextFilter(logging.Filter):
     hostname = socket.gethostname()
 
@@ -639,16 +646,29 @@ class ContextFilter(logging.Filter):
         return True
 
 
-syslog = SysLogHandler(address=(os.environ['LOGGER_URL'], 44138))
+syslog = SysLogHandler(address=(os.getenv("LOGGER_URL"), 44138))
 syslog.addFilter(ContextFilter())
 
-format = '%(asctime)s %(hostname)s YOUR_APP: %(message)s'
-formatter = logging.Formatter(format, datefmt='%b %d %H:%M:%S')
+format = "%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] [MONITOR]: %(message)s"
+
+formatter = logging.Formatter(format, datefmt="%b %d %H:%M:%S")
 syslog.setFormatter(formatter)
 
 logger = logging.getLogger()
 logger.addHandler(syslog)
 logger.setLevel(logging.INFO)
+
+
+def sendDebug(log, papertrail=True):
+    """Logs debug messages
+
+    Args:
+        log (str): The message
+        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+    """
+    if papertrail:
+        logger.debug(log)
+    print(log)
 
 
 def sendInfo(log, papertrail=True):
@@ -659,8 +679,8 @@ def sendInfo(log, papertrail=True):
         papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
     """
     if papertrail:
-        logger.info('[MONITOR] INFO: {}'.format(log))
-    print('[MONITOR] INFO: {}'.format(log))
+        logger.info(log)
+    print(log)
 
 
 def sendError(log, papertrail=True):
@@ -671,8 +691,8 @@ def sendError(log, papertrail=True):
         papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
     """
     if papertrail:
-        logger.error('[MONITOR] ERROR: {}'.format(log))
-    print('[MONITOR] ERROR: {}'.format(log))
+        logger.error(log)
+    print(log)
 
 
 def sendCritical(log, papertrail=True):
@@ -683,5 +703,5 @@ def sendCritical(log, papertrail=True):
         papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
     """
     if papertrail:
-        logger.critical('[MONITOR] CRITICAL: {}'.format(log))
-    print('[MONITOR] CRITICAL: {}'.format(log))
+        logger.critical(log)
+    print(log)
