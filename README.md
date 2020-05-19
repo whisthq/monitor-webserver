@@ -39,7 +39,7 @@ To view the current running processes, type `heroku ps`.
 
 ## Styling
 
-To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode.
+To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode, Sublime Text and running it from the CLI.
 
 ### Python Black
 
@@ -61,8 +61,6 @@ ext install ms-python.python
 4. Type “format on save” at the search bar on top of the Settings tab and check the box.
 5. Search for “python formatting provider” and select “black”.
 6. Now open/create a python file, write some code and save(Ctrl+s) it to see the magic happen!
-
-<sub>[Source](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)</sub>
 
 #### [Sublime](https://github.com/jgirardet/sublack)
 
