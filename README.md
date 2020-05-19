@@ -10,15 +10,12 @@ Heroku Dashboard: https://dashboard.heroku.com/apps/fractal-monitor-server
 
 1. Set up the Heroku CLI on your computer
 2. Check your python version by typing `python -V`.
-
-- If you have python 3.6.X:
-  - Create a virtual environment for yourself by typing `virtualenv env` and then run the python executable listed in the install text, i.e. `source env\Scripts\activate` in Windows, or `source env/bin/activate` on Linux
-- If you have Python >3.6 or Python <3.0:
-
-  - Create a Python 3.6 virtual environment. To do this, first install python 3.6.8 from the Python website.
-  - Find the directory where python.exe is installed. Make sure you are cd'ed into the vm-monitor folder, then type `virtualenv --python=[DIRECTORY PATH] venv` in your terminal. The terminal should output a "created virtual environment CPython3.6.8" message.
-  - Activate it by typing `source venv\Scripts\activate` (Windows) or `source venv/bin/activate` (MacOS/Linux). You will need to type this last command every time to access your virtual environment.
-
+  - If you have python 3.6.X:
+    - Create a virtual environment for yourself by typing `virtualenv env` and then run the python executable listed in the install text, i.e. `source env\Scripts\activate` in Windows, or `source env/bin/activate` on Linux.
+  - If you have Python >3.6 or Python <3.0:
+    - Create a Python 3.6 virtual environment. To do this, first install python 3.6.8 from the Python website.
+    - Find the directory where python.exe is installed. Make sure you are cd'ed into the vm-monitor folder, then type `virtualenv --python=[DIRECTORY PATH] venv` in your terminal. The terminal should output a "created virtual environment CPython3.6.8" message.
+    - Activate it by typing `source venv\Scripts\activate` (Windows) or `source venv/bin/activate` (MacOS/Linux). You will need to type this last command every time to access your virtual environment.
 3. Install everything by typing `pip install -r requirements.txt`. Make sure you're in the virtual environment when doing this.
 4. Import the environment variables into your computer by typing `heroku config -s --app fractal-monitor-server >> .env`.
 5. Type `python monitor.py` to start the monitor locally.
