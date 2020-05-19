@@ -38,6 +38,8 @@ To run the monitor script, type `heroku run:detached python monitor.py`.
 To view the verbose server logs, type `heroku logs --tail`.  
 The server also logs INFO, WARNING, ERROR, and CRITICAL logs to PaperTrail, as [MONITOR].
 
+To view the current running processes, type `heroku ps`.
+
 ## Styling
 
 To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode.
