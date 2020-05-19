@@ -78,3 +78,28 @@ On the Ubuntu EC2 instance, you can simply type `screen` to open a new terminal 
 To exit screen, press `ctrl+A+D` on Windows. To reenter screen, type `screen -r`.
 
 To kill the screen you're in, press `ctrl + a` and then press `k`, then press `y`
+
+## Styling
+
+To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode.
+
+### Python Black on VSCode
+
+1. Install it on your virtual env or in your local python with the command:
+
+```
+$ pip install black
+```
+
+2. Now install the python extension for VS-Code, open your VS-Code and type “Ctrl + p”, paste the line bellow and hit enter:
+
+```
+ext install ms-python.python
+```
+
+3. Go to the settings in your VS-Code typing “Ctrl + ,” or clicking at the gear on the bottom left and selecting “Settings [Ctrl+,]” option.
+4. Type “format on save” at the search bar on top of the Settings tab and check the box.
+5. Search for “python formatting provider” and select “black”.
+6. Now open/create a python file, write some code and save(Ctrl+s) it to see the magic happen!
+
+<sub>[Source](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)</sub>
