@@ -43,7 +43,7 @@ To ensure that code formatting is standardized, and to minimize clutter in the c
 
 ### Python Black
 
-#### VSCode
+#### [VSCode](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)
 
 1. Install it on your virtual env or in your local python with the command:
 
