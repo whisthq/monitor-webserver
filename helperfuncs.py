@@ -2,15 +2,15 @@ from imports import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
-    os.environ["DATABASE_URL"], echo=False, pool_pre_ping=True
+    os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True
 )
 
 # Get Azure clients
-subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
+subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 credentials = ServicePrincipalCredentials(
-    client_id=os.environ["AZURE_CLIENT_ID"],
-    secret=os.environ["AZURE_CLIENT_SECRET"],
-    tenant=os.environ["AZURE_TENANT_ID"],
+    client_id=os.getenv("AZURE_CLIENT_ID"),
+    secret=os.getenv("AZURE_CLIENT_SECRET"),
+    tenant=os.getenv("AZURE_TENANT_ID"),
 )
 RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
@@ -46,9 +46,9 @@ def reportError(service):
     msg = "ERROR for " + service + ": " + error
 
     # Log error in log.txt
-    file = open("log.txt", "a")
-    file.write(errorTime + " " + msg)
-    file.close()
+    # file = open("log.txt", "a")
+    # file.write(errorTime + " " + msg)
+    # file.close()
 
     # Send log to Papertrail
     sendError(msg)
@@ -100,7 +100,7 @@ def getVM(vm_name):
         VirtualMachine: The virtual machine object (https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/get#virtualmachine)
     """
     try:
-        virtual_machine = CCLIENT.virtual_machines.get(os.environ["VM_GROUP"], vm_name)
+        virtual_machine = CCLIENT.virtual_machines.get(os.getenv("VM_GROUP"), vm_name)
         return virtual_machine
     except:
         return None
@@ -232,7 +232,7 @@ def createNic(name, location, tries):
     )
     try:
         async_vnet_creation = NCLIENT.virtual_networks.create_or_update(
-            os.environ["VM_GROUP"],
+            os.getenv("VM_GROUP"),
             vnetName,
             {
                 "location": location,
@@ -243,7 +243,7 @@ def createNic(name, location, tries):
 
         # Create Subnet
         async_subnet_creation = NCLIENT.subnets.create_or_update(
-            os.environ["VM_GROUP"],
+            os.getenv("VM_GROUP"),
             vnetName,
             subnetName,
             {"address_prefix": "10.0.0.0/24"},
@@ -256,16 +256,16 @@ def createNic(name, location, tries):
             "public_ip_allocation_method": "Static",
         }
         creation_result = NCLIENT.public_ip_addresses.create_or_update(
-            os.environ["VM_GROUP"], ipName, public_ip_addess_params
+            os.getenv("VM_GROUP"), ipName, public_ip_addess_params
         )
 
         public_ip_address = NCLIENT.public_ip_addresses.get(
-            os.environ["VM_GROUP"], ipName
+            os.getenv("VM_GROUP"), ipName
         )
 
         # Create NIC
         async_nic_creation = NCLIENT.network_interfaces.create_or_update(
-            os.environ["VM_GROUP"],
+            os.getenv("VM_GROUP"),
             nicName,
             {
                 "location": location,
@@ -470,7 +470,7 @@ def createVM(vm_size, location):
         return
     vmParameters = createVMParameters(vmName, nic.id, vm_size, location)
     async_vm_creation = CCLIENT.virtual_machines.create_or_update(
-        os.environ["VM_GROUP"], vmParameters["vm_name"], vmParameters["params"]
+        os.getenv("VM_GROUP"), vmParameters["vm_name"], vmParameters["params"]
     )
     async_vm_creation.wait()
 
@@ -483,7 +483,7 @@ def createVM(vm_size, location):
     }
 
     async_vm_extension = CCLIENT.virtual_machine_extensions.create_or_update(
-        os.environ["VM_GROUP"],
+        os.getenv("VM_GROUP"),
         vmParameters["vm_name"],
         "NvidiaGpuDriverWindows",
         extension_parameters,
@@ -491,7 +491,7 @@ def createVM(vm_size, location):
     async_vm_extension.wait()
 
     async_vm_start = CCLIENT.virtual_machines.start(
-        os.environ["VM_GROUP"], vmParameters["vm_name"]
+        os.getenv("VM_GROUP"), vmParameters["vm_name"]
     )
     async_vm_start.wait()
 
@@ -646,7 +646,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-syslog = SysLogHandler(address=(os.environ["LOGGER_URL"], 44138))
+syslog = SysLogHandler(address=(os.getenv("LOGGER_URL"), 44138))
 syslog.addFilter(ContextFilter())
 
 format = "%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] [MONITOR]: %(message)s"

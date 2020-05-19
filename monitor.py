@@ -3,15 +3,15 @@ from helperfuncs import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
-    os.environ["DATABASE_URL"], echo=False, pool_pre_ping=True
+    os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True
 )
 
 # Get Azure clients
-subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
+subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 credentials = ServicePrincipalCredentials(
-    client_id=os.environ["AZURE_CLIENT_ID"],
-    secret=os.environ["AZURE_CLIENT_SECRET"],
-    tenant=os.environ["AZURE_TENANT_ID"],
+    client_id=os.getenv("AZURE_CLIENT_ID"),
+    secret=os.getenv("AZURE_CLIENT_SECRET"),
+    tenant=os.getenv("AZURE_TENANT_ID"),
 )
 RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
@@ -55,7 +55,7 @@ def monitorVMs():
             else:
                 # Get VM state
                 vm_state = CCLIENT.virtual_machines.instance_view(
-                    resource_group_name=os.environ["VM_GROUP"], vm_name=vm["vm_name"]
+                    resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
                 )
                 # Compare with database and update if there's a disreptancy
                 power_state = vm_state.statuses[1].code
@@ -122,7 +122,7 @@ def monitorVMs():
                             "Automatically deallocating VM " + vm["vm_name"] + "..."
                         )
                         async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-                            os.environ["VM_GROUP"], vm["vm_name"]
+                            os.getenv("VM_GROUP"), vm["vm_name"]
                         )
 
                         lockVM(vm["vm_name"], True)
@@ -180,7 +180,7 @@ def monitorDisks():
     dbDisks = fetchAllDisks()
 
     azureDisks = []
-    disks = CCLIENT.disks.list(resource_group_name=os.environ["VM_GROUP"])
+    disks = CCLIENT.disks.list(resource_group_name=os.getenv("VM_GROUP"))
     for disk in disks:
         azureDisks.append(disk.name)
 
@@ -195,7 +195,7 @@ def monitorDisks():
                 delete = False
                 if dbDisk["state"] == "TO_BE_DELETED":
                     os_disk = CCLIENT.disks.get(
-                        os.environ["VM_GROUP"], dbDisk["disk_name"]
+                        os.getenv("VM_GROUP"), dbDisk["disk_name"]
                     )
                     vm_name = os_disk.managed_by
                     if (
@@ -216,13 +216,13 @@ def monitorDisks():
                         "Automatically deleting Disk " + dbDisk["disk_name"] + "..."
                     )
                     async_disk_delete = CCLIENT.disks.delete(
-                        os.environ["VM_GROUP"], dbDisk["disk_name"]
+                        os.getenv("VM_GROUP"), dbDisk["disk_name"]
                     )
                     async_disk_delete.wait()
 
                     deleteDiskFromTable(dbDisk["disk_name"])
 
-                    sg = SendGridAPIClient(os.environ["SENDGRID_API_KEY"])
+                    sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
 
                     # Send email to support@fractalcomputers.com
                     title = "Automatically deleted disk for " + dbDisk["username"]
@@ -274,7 +274,7 @@ def manageRegions():
                     for vm in unavailableVms:
                         # Get VM state
                         vm_state = CCLIENT.virtual_machines.instance_view(
-                            resource_group_name=os.environ["VM_GROUP"],
+                            resource_group_name=os.getenv("VM_GROUP"),
                             vm_name=vm["vm_name"],
                         )
                         if "deallocated" in vm_state.statuses[1].code:
@@ -286,7 +286,7 @@ def manageRegions():
                         "Reallocating VM " + vmToAllocate + " in region " + location
                     )
                     async_vm_alloc = CCLIENT.virtual_machines.start(
-                        os.environ["VM_GROUP"], vmToAllocate
+                        os.getenv("VM_GROUP"), vmToAllocate
                     )
                     lockVM(vmToAllocate, True)
                     updateVMState(vm["vm_name"], "STARTING")
