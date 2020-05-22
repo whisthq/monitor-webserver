@@ -5,6 +5,7 @@ from helperfuncs import *
 ENGINE = sqlalchemy.create_engine(
     os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True
 )
+Session = sessionmaker(bind=ENGINE, autocommit=False)
 
 # Get Azure clients
 subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
@@ -108,7 +109,7 @@ def monitorVMs():
                     if vm["lock"]:
                         shutdown = False
 
-                    if vm["dev"]:
+                    if vm["dev"] and vm["os"] != "Linux":
                         shutdown = False
 
                     if (

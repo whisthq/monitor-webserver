@@ -636,7 +636,42 @@ def getLogons(timestamp, action):
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         return activity
 
+def lockVMAndUpdate(
+    vm_name, state, lock, temporary_lock, change_last_updated, verbose, ID=-1
+):
+    MAX_LOCK_TIME = 10
 
+    session = Session()
+
+    command = text(
+        """
+        UPDATE v_ms SET state = :state, lock = :lock
+        WHERE vm_name = :vm_name
+        """
+    )
+
+    if temporary_lock:
+        temporary_lock = min(MAX_LOCK_TIME, temporary_lock)
+        temporary_lock = shiftUnixByMinutes(dateToUnix(getToday()), temporary_lock)
+
+        command = text(
+            """
+            UPDATE v_ms SET state = :state, lock = :lock, temporary_lock = :temporary_lock
+            WHERE vm_name = :vm_name
+            """
+        )
+
+    params = {
+        "vm_name": vm_name,
+        "state": state,
+        "lock": lock,
+        "temporary_lock": temporary_lock,
+    }
+
+    session.execute(command, params)
+    session.commit()
+    session.close()
+    
 # Logging
 class ContextFilter(logging.Filter):
     hostname = socket.gethostname()
@@ -705,3 +740,4 @@ def sendCritical(log, papertrail=True):
     if papertrail:
         logger.critical(log)
     print(log)
+
