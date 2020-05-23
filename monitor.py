@@ -112,6 +112,9 @@ def monitorVMs():
                     if vm["dev"] and vm["os"] != "Linux":
                         shutdown = False
 
+                    if vm["state"].endswith("ING"):
+                        shutdown = False
+
                     if (
                         vm["location"] in freeVmsByRegion
                         and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD
