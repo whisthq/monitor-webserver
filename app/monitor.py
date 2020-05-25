@@ -291,7 +291,7 @@ def manageRegions():
 
                         if vmToAllocate:  # Reallocate from VMs
                             sendInfo(
-                                "Reallocating VM " + vmToAllocate + " in region " + location + " with os " + os
+                                "Reallocating VM " + vmToAllocate + " in region " + location + " with os " + operatingSystem
                             )
                             async_vm_alloc = CCLIENT.virtual_machines.start(
                                 os.getenv("VM_GROUP"), vmToAllocate
@@ -302,7 +302,7 @@ def manageRegions():
                             updateVMState(vm["vm_name"], "RUNNING_AVAILABLE")
                             lockVM(vmToAllocate, False)
                         else:
-                            sendInfo("Creating VM in region " + location + " with os ")
+                            sendInfo("Creating VM in region " + location + " with os " + operatingSystem)
                             createVM("Standard_NV6_Promo", location, operatingSystem)
                 except:
                     reportError("Region monitor error for region " + location)
