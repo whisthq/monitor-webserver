@@ -4,7 +4,8 @@ import traceback
 from datetime import datetime, timedelta
 import os, sys
 import sqlalchemy
-from sqlalchemy.sql import text, sessionmaker
+from sqlalchemy.sql import text
+from sqlalchemy.orm import sessionmaker
 
 from haikunator import Haikunator
 import numpy as np
