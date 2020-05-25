@@ -198,7 +198,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
         sendCritical(str(e))
         return -1
 
-def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True, s=None):
+def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
     """Bullies Azure into actually starting the vm by repeatedly calling sendVMStartCommand if necessary (big brain thoughts from Ming)
 
     Args:
@@ -228,7 +228,7 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True, s=None):
             )
 
         while (
-            sendVMStartCommand(vm_name, needs_restart, needs_winlogon, s=s) < 0
+            sendVMStartCommand(vm_name, needs_restart, needs_winlogon) < 0
             and start_command_tries < 6
         ):
             time.sleep(10)
