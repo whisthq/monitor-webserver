@@ -690,7 +690,7 @@ def getVMLocationState(location, state, os=None):
 
     nowTime = datetime.utcnow().timestamp()
 
-    if(os){
+    if os:
         command = text(
             """
             SELECT * 
@@ -699,7 +699,7 @@ def getVMLocationState(location, state, os=None):
             AND ("temporary_lock" IS NULL OR "temporary_lock" < :timestamp)
             """
         )
-    } else {
+    else:
         command = text(
             """
             SELECT * 
@@ -708,7 +708,7 @@ def getVMLocationState(location, state, os=None):
             AND ("temporary_lock" IS NULL OR "temporary_lock" < :timestamp)
             """
         )
-    }
+    
 
     
     params = {"location": location, "timestamp": nowTime, "state": state, "os": os}
