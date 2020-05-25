@@ -1,1 +1,1 @@
-worker: python monitor.py
+worker: cd app && python monitor.py
