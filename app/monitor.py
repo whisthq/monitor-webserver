@@ -1,5 +1,5 @@
 from imports import *
-from helperfuncs import *
+from helpers.sql import *
 from helpers.vms import *
 
 # Create db engine object

@@ -1,5 +1,6 @@
 from app.imports import *
 from app.logger import *
+from sql import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -564,3 +565,110 @@ def lockVMAndUpdate(
     session.execute(command, params)
     session.commit()
     session.close()
+
+def genHaiku(n):
+    """Generates an array of haiku names (no more than 15 characters) using haikunator
+
+    Args:
+        n (int): Length of the array to generate
+
+    Returns:
+        arr: An array of haikus
+    """
+    haikunator = Haikunator()
+    haikus = [
+        haikunator.haikunate(delimiter="") + str(np.random.randint(0, 10000))
+        for _ in range(0, n)
+    ]
+    haikus = [haiku[0 : np.min([15, len(haiku)])] for haiku in haikus]
+    return haikus
+
+
+def genVMName():
+    """Generates a unique name for a vm
+
+    Returns:
+        str: The generated name
+    """
+    with ENGINE.connect() as conn:
+        oldVMs = [cell[0] for cell in list(conn.execute('SELECT "vm_name" FROM v_ms'))]
+        vmName = genHaiku(1)[0]
+        while vmName in oldVMs:
+            vmName = genHaiku(1)[0]
+        return vmName
+
+def createNic(name, location, tries):
+    """Creates a network id
+
+    Args:
+        name (str): Name of the vm
+        location (str): The azure region
+        tries (int): The current number of tries
+
+    Returns:
+        dict: The network id object
+    """
+    vnetName, subnetName, ipName, nicName = (
+        name + "_vnet",
+        name + "_subnet",
+        name + "_ip",
+        name + "_nic",
+    )
+    try:
+        async_vnet_creation = NCLIENT.virtual_networks.create_or_update(
+            os.getenv("VM_GROUP"),
+            vnetName,
+            {
+                "location": location,
+                "address_space": {"address_prefixes": ["10.0.0.0/16"]},
+            },
+        )
+        async_vnet_creation.wait()
+
+        # Create Subnet
+        async_subnet_creation = NCLIENT.subnets.create_or_update(
+            os.getenv("VM_GROUP"),
+            vnetName,
+            subnetName,
+            {"address_prefix": "10.0.0.0/24"},
+        )
+        subnet_info = async_subnet_creation.result()
+
+        # Create public IP address
+        public_ip_addess_params = {
+            "location": location,
+            "public_ip_allocation_method": "Static",
+        }
+        creation_result = NCLIENT.public_ip_addresses.create_or_update(
+            os.getenv("VM_GROUP"), ipName, public_ip_addess_params
+        )
+
+        public_ip_address = NCLIENT.public_ip_addresses.get(
+            os.getenv("VM_GROUP"), ipName
+        )
+
+        # Create NIC
+        async_nic_creation = NCLIENT.network_interfaces.create_or_update(
+            os.getenv("VM_GROUP"),
+            nicName,
+            {
+                "location": location,
+                "ip_configurations": [
+                    {
+                        "name": ipName,
+                        "public_ip_address": public_ip_address,
+                        "subnet": {"id": subnet_info.id},
+                    }
+                ],
+            },
+        )
+
+        return async_nic_creation.result()
+    except Exception as e:
+        if tries < 5:
+            # print(e)
+            print("Trying again for createNic")
+            time.sleep(3)
+            return createNic(name, location, tries + 1)
+        else:
+            return None
