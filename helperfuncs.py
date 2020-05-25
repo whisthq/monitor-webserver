@@ -562,25 +562,23 @@ def getVMLocationState(location, state):
 
     Args:
         location (str): The Azure region to look in
-        state (str): "available" or "unavailable", which represents if the vm is open to be used
+        state (str): The state to look for (ie "RUNNING_AVAILABLE", "DEALLOCATED")
 
     Returns:
         array: An array of all vms that satisfy the query
     """
-    # This is a bad way of doing things, hopefully this can be changed if we update the database schema
-    if state == "available":  # Get VMs that are "available" for users to use
-        command = text(
-            """
-        SELECT * FROM v_ms WHERE ("location" = :location AND "state" = 'RUNNING_AVAILABLE' AND "dev" = 'false')
+
+    nowTime = datetime.utcnow().timestamp()
+
+    command = text(
         """
-        )
-    elif state == "unavailable":  # Get deallocated VMs (not running)
-        command = text(
-            """
-        SELECT * FROM v_ms WHERE ("location" = :location AND "dev" = 'false' AND "state" = 'DEALLOCATED')
+        SELECT * 
+        FROM v_ms 
+        WHERE ("location" = :location AND "state" = :state AND "dev" = 'false')
+        AND ("temporary_lock" IS NULL OR "temporary_lock" < :timestamp)
         """
-        )
-    params = {"location": location}
+    )
+    params = {"location": location, "timestamp": nowTime, "state": state}
     with ENGINE.connect() as conn:
         vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()

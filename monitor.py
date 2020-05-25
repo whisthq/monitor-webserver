@@ -21,7 +21,7 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 # Threshold for min number of available VMs per region
 REGION_THRESHOLD = 1
 # The regions we care about
-REGIONS = ["eastus", "northcentralus", "southcentralus"]
+REGIONS = ["eastus", "northcentralus", "southcentralus", "westus2"]
 
 # Report variables
 timesDeallocated = 0
@@ -36,7 +36,7 @@ def monitorVMs():
     global timesDeallocated
     freeVmsByRegion = {}
     for region in REGIONS:
-        regionVms = getVMLocationState(region, "available")
+        regionVms = getVMLocationState(region, "RUNNING_AVAILABLE")
         if not regionVms:
             freeVmsByRegion[region] = 0
         else:
@@ -270,12 +270,12 @@ def manageRegions():
     sendDebug("Monitoring regions...")
     for location in REGIONS:
         try:
-            availableVms = getVMLocationState(location, "available")
+            availableVms = getVMLocationState(location, "RUNNING_AVAILABLE")
             if not availableVms or len(availableVms) < REGION_THRESHOLD:
-                unavailableVms = getVMLocationState(location, "unavailable")
+                deallocVms = getVMLocationState(location, "DEALLOCATED")
                 vmToAllocate = None
-                if unavailableVms:
-                    for vm in unavailableVms:
+                if deallocVms:
+                    for vm in deallocVms:
                         # Get VM state
                         vm_state = CCLIENT.virtual_machines.instance_view(
                             resource_group_name=os.getenv("VM_GROUP"),
