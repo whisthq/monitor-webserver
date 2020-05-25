@@ -24,7 +24,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
     Args:
         vm_name (str): The name of the vm to start
         needs_restart (bool): Whether the vm needs to restart after
-        ID (int, optional): Unique papertrail logging id. Defaults to -1.
 
     Returns:
         int: 1 for success, -1 for fail
@@ -204,7 +203,6 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
     Args:
         vm_name (str): Name of the vm to start
         needs_restart (bool, optional): Whether the vm needs to restart after. Defaults to False.
-        ID (int, optional): Unique papertrail logging id. Defaults to -1.
 
     Returns:
         int: 1 for success, -1 for failure
