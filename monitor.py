@@ -119,7 +119,7 @@ def monitorVMs():
 
                     if (
                         vm["location"] in freeVmsByRegion
-                        and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[os]
+                        and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[vm['os']]
                     ):
                         shutdown = False
 
@@ -272,11 +272,11 @@ def manageRegions():
     sendDebug("Monitoring regions...")
     # TODO: Add region support
     for location in REGIONS:
-        for os in VM_OS:
+        for operatingSystem in VM_OS:
             try:
-                availableVms = getVMLocationState(location, "RUNNING_AVAILABLE", os)
-                if not availableVms or len(availableVms) < REGION_THRESHOLD[os]:
-                    deallocVms = getVMLocationState(location, "DEALLOCATED", os)
+                availableVms = getVMLocationState(location, "RUNNING_AVAILABLE", operatingSystem)
+                if not availableVms or len(availableVms) < REGION_THRESHOLD[operatingSystem]:
+                    deallocVms = getVMLocationState(location, "DEALLOCATED", operatingSystem)
                     vmToAllocate = None
                     if deallocVms:
                         for vm in deallocVms:
@@ -303,7 +303,7 @@ def manageRegions():
                         lockVM(vmToAllocate, False)
                     else:
                         sendInfo("Creating VM in region " + location + " with os ")
-                        createVM("Standard_NV6_Promo", location, os)
+                        createVM("Standard_NV6_Promo", location, operatingSystem)
             except:
                 reportError("Region monitor error for region " + location)
 

@@ -675,7 +675,7 @@ def deleteVmFromTable(vm_name):
 
 
 # Gets all VMs from database with specified location and state and OS
-def getVMLocationState(location, state, os=None):
+def getVMLocationState(location, state, operatingSys=None):
     """Gets all vms in location with availability state
 
     Args:
@@ -688,7 +688,7 @@ def getVMLocationState(location, state, os=None):
 
     nowTime = datetime.utcnow().timestamp()
 
-    if os:
+    if operatingSys:
         command = text(
             """
             SELECT * 
@@ -709,7 +709,7 @@ def getVMLocationState(location, state, os=None):
     
 
     
-    params = {"location": location, "timestamp": nowTime, "state": state, "os": os}
+    params = {"location": location, "timestamp": nowTime, "state": state, "os": operatingSys}
     with ENGINE.connect() as conn:
         vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
