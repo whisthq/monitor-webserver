@@ -18,8 +18,11 @@ RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
-# Threshold for min number of available VMs per region
-REGION_THRESHOLD = 1
+# Threshold for min number of available VMs per region and OS
+REGION_THRESHOLD = {
+    "Windows": 1,
+    "Linux": 0
+}
 # The regions we care about
 REGIONS = ["eastus", "northcentralus", "southcentralus", "westus2"]
 # The operating systems we care about
@@ -116,7 +119,7 @@ def monitorVMs():
 
                     if (
                         vm["location"] in freeVmsByRegion
-                        and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD
+                        and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[os]
                     ):
                         shutdown = False
 
@@ -272,7 +275,7 @@ def manageRegions():
         for os in VM_OS:
             try:
                 availableVms = getVMLocationState(location, "RUNNING_AVAILABLE", os)
-                if not availableVms or len(availableVms) < REGION_THRESHOLD:
+                if not availableVms or len(availableVms) < REGION_THRESHOLD[os]:
                     deallocVms = getVMLocationState(location, "DEALLOCATED", os)
                     vmToAllocate = None
                     if deallocVms:
