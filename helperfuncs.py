@@ -470,7 +470,6 @@ def createVM(vm_size, location, operating_system):
         ),
     )
 
-    _, compute_client, _ = createClients()
     vmName = genVMName()
     nic = createNic(vmName, location, 0)
     if not nic:
@@ -479,7 +478,7 @@ def createVM(vm_size, location, operating_system):
     vmParameters = createVMParameters(
         vmName, nic.id, vm_size, location, operating_system
     )
-    async_vm_creation = compute_client.virtual_machines.create_or_update(
+    async_vm_creation = CCLIENT.virtual_machines.create_or_update(
         os.environ["VM_GROUP"], vmParameters["vm_name"], vmParameters["params"]
     )
     sendDebug( "Waiting on async_vm_creation")
@@ -487,7 +486,7 @@ def createVM(vm_size, location, operating_system):
 
     time.sleep(10)
 
-    async_vm_start = compute_client.virtual_machines.start(
+    async_vm_start = CCLIENT.virtual_machines.start(
         os.environ["VM_GROUP"], vmParameters["vm_name"]
     )
     sendDebug("Waiting on async_vm_start")
@@ -519,7 +518,7 @@ def createVM(vm_size, location, operating_system):
         }
     )
 
-    async_vm_extension = compute_client.virtual_machine_extensions.create_or_update(
+    async_vm_extension = CCLIENT.virtual_machine_extensions.create_or_update(
         os.environ["VM_GROUP"],
         vmParameters["vm_name"],
         extension_parameters["vm_extension_name"],
@@ -554,7 +553,6 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True, s=None):
     sendInfo(
         "Begin repeatedly calling sendVMStartCommand for vm {}".format(vm_name)
     )
-    _, compute_client, _ = createClients()
 
     started = False
     start_attempts = 0
@@ -584,7 +582,7 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True, s=None):
 
         # After the VM has been started/restarted, query the state. Try 12 times for the state to be running. If it is not running,
         # give up and go to the top of the while loop to send another start/restart command
-        vm_state = compute_client.virtual_machines.instance_view(
+        vm_state = CCLIENT.virtual_machines.instance_view(
             resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name
         )
 
@@ -602,7 +600,7 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True, s=None):
                 ),
             )
             time.sleep(5)
-            vm_state = compute_client.virtual_machines.instance_view(
+            vm_state = CCLIENT.virtual_machines.instance_view(
                 resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name
             )
 
