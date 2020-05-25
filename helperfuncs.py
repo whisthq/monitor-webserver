@@ -454,54 +454,174 @@ def fetchVMCredentials(vm_name):
         return vm_info
 
 
-def createVM(vm_size, location):
+def createVM(vm_size, location, operating_system):
     """Creates a windows vm of size vm_size in Azure region location
 
-    Args:
-        vm_size (str): The size of the vm to create
-        location (str): The Azure region
+	Args:
+		vm_size (str): The size of the vm to create
+		location (str): The Azure region
 
-    Returns:
-        dict: The dict representing the vm in the v_ms sql table
-    """
+	Returns:
+		dict: The dict representing the vm in the v_ms sql table
+	"""
+    sendInfo(
+        "Creating VM of size {}, location {}, operating system {}".format(
+            vm_size, location, operating_system
+        ),
+    )
+
+    _, compute_client, _ = createClients()
     vmName = genVMName()
     nic = createNic(vmName, location, 0)
     if not nic:
+        sendError("Nic does not exist, aborting")
         return
-    vmParameters = createVMParameters(vmName, nic.id, vm_size, location)
-    async_vm_creation = CCLIENT.virtual_machines.create_or_update(
-        os.getenv("VM_GROUP"), vmParameters["vm_name"], vmParameters["params"]
+    vmParameters = createVMParameters(
+        vmName, nic.id, vm_size, location, operating_system
     )
+    async_vm_creation = compute_client.virtual_machines.create_or_update(
+        os.environ["VM_GROUP"], vmParameters["vm_name"], vmParameters["params"]
+    )
+    sendDebug( "Waiting on async_vm_creation")
     async_vm_creation.wait()
 
-    extension_parameters = {
-        "location": location,
-        "publisher": "Microsoft.HpcCompute",
-        "vm_extension_name": "NvidiaGpuDriverWindows",
-        "virtual_machine_extension_type": "NvidiaGpuDriverWindows",
-        "type_handler_version": "1.2",
-    }
+    time.sleep(10)
 
-    async_vm_extension = CCLIENT.virtual_machine_extensions.create_or_update(
-        os.getenv("VM_GROUP"),
+    async_vm_start = compute_client.virtual_machines.start(
+        os.environ["VM_GROUP"], vmParameters["vm_name"]
+    )
+    sendDebug("Waiting on async_vm_start")
+    async_vm_start.wait()
+
+    time.sleep(30)
+
+    sendInfo("The VM created is called {}".format(vmParameters["vm_name"]))
+
+    fractalVMStart(vmParameters["vm_name"], needs_winlogon=False)
+
+    time.sleep(30)
+
+    extension_parameters = (
+        {
+            "location": location,
+            "publisher": "Microsoft.HpcCompute",
+            "vm_extension_name": "NvidiaGpuDriverWindows",
+            "virtual_machine_extension_type": "NvidiaGpuDriverWindows",
+            "type_handler_version": "1.2",
+        }
+        if operating_system == "Windows"
+        else {
+            "location": location,
+            "publisher": "Microsoft.HpcCompute",
+            "vm_extension_name": "NvidiaGpuDriverLinux",
+            "virtual_machine_extension_type": "NvidiaGpuDriverLinux",
+            "type_handler_version": "1.2",
+        }
+    )
+
+    async_vm_extension = compute_client.virtual_machine_extensions.create_or_update(
+        os.environ["VM_GROUP"],
         vmParameters["vm_name"],
-        "NvidiaGpuDriverWindows",
+        extension_parameters["vm_extension_name"],
         extension_parameters,
     )
-    async_vm_extension.wait()
 
-    async_vm_start = CCLIENT.virtual_machines.start(
-        os.getenv("VM_GROUP"), vmParameters["vm_name"]
-    )
-    async_vm_start.wait()
+    sendDebug( "Waiting on async_vm_extension")
+    async_vm_extension.wait()
 
     vm = getVM(vmParameters["vm_name"])
     vm_ip = getIP(vm)
     updateVMIP(vmParameters["vm_name"], vm_ip)
     updateVMState(vmParameters["vm_name"], "RUNNING_AVAILABLE")
     updateVMLocation(vmParameters["vm_name"], location)
+    updateVMOS(vmParameters["vm_name"], operating_system)
+
+    sendInfo( "SUCCESS: VM {} created and updated".format(vmName))
 
     return fetchVMCredentials(vmParameters["vm_name"])
+
+def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True, s=None):
+    """Bullies Azure into actually starting the vm by repeatedly calling sendVMStartCommand if necessary (big brain thoughts from Ming)
+
+    Args:
+        vm_name (str): Name of the vm to start
+        needs_restart (bool, optional): Whether the vm needs to restart after. Defaults to False.
+        ID (int, optional): Unique papertrail logging id. Defaults to -1.
+
+    Returns:
+        int: 1 for success, -1 for failure
+    """
+    sendInfo(
+        "Begin repeatedly calling sendVMStartCommand for vm {}".format(vm_name)
+    )
+    _, compute_client, _ = createClients()
+
+    started = False
+    start_attempts = 0
+
+    # We will try to start/restart the VM and wait for it three times in total before giving up
+    while not started and start_attempts < 3:
+        start_command_tries = 0
+
+        # First, send a basic start or restart command. Try six times, if it fails, give up
+        if s:
+            s.update_state(
+                state="PENDING",
+                meta={"msg": "Cloud PC successfully received boot request."},
+            )
+
+        while (
+            sendVMStartCommand(vm_name, needs_restart, needs_winlogon, s=s) < 0
+            and start_command_tries < 6
+        ):
+            time.sleep(10)
+            start_command_tries += 1
+
+        if start_command_tries >= 6:
+            return -1
+
+        wake_retries = 0
+
+        # After the VM has been started/restarted, query the state. Try 12 times for the state to be running. If it is not running,
+        # give up and go to the top of the while loop to send another start/restart command
+        vm_state = compute_client.virtual_machines.instance_view(
+            resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name
+        )
+
+        # Success! VM is running and ready to use
+        if "running" in vm_state.statuses[1].code:
+            updateVMState(vm_name, "RUNNING_AVAILABLE")
+            sendInfo("Running found in status of VM {}".format(vm_name))
+            started = True
+            return 1
+
+        while not "running" in vm_state.statuses[1].code and wake_retries < 12:
+            sendWarning(
+                "VM state is currently in state {}, sleeping for 5 seconds and querying state again".format(
+                    vm_state.statuses[1].code
+                ),
+            )
+            time.sleep(5)
+            vm_state = compute_client.virtual_machines.instance_view(
+                resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name
+            )
+
+            # Success! VM is running and ready to use
+            if "running" in vm_state.statuses[1].code:
+                updateVMState(vm_name, "RUNNING_AVAILABLE")
+                sendInfo(
+                    "VM {} is running. State is {}".format(
+                        vm_name, vm_state.statuses[1].code
+                    ),
+                )
+                started = True
+                return 1
+
+            wake_retries += 1
+
+        start_attempts += 1
+
+    return -1
 
 
 def fetchAllDisks():
@@ -556,8 +676,8 @@ def deleteVmFromTable(vm_name):
         conn.close()
 
 
-# Gets all VMs from database with specified location and state
-def getVMLocationState(location, state):
+# Gets all VMs from database with specified location and state and OS
+def getVMLocationState(location, state, os):
     """Gets all vms in location with availability state
 
     Args:
@@ -574,11 +694,11 @@ def getVMLocationState(location, state):
         """
         SELECT * 
         FROM v_ms 
-        WHERE ("location" = :location AND "state" = :state AND "dev" = 'false')
+        WHERE ("location" = :location AND "state" = :state AND "dev" = 'false' AND "os" = :os)
         AND ("temporary_lock" IS NULL OR "temporary_lock" < :timestamp)
         """
     )
-    params = {"location": location, "timestamp": nowTime, "state": state}
+    params = {"location": location, "timestamp": nowTime, "state": state, "os": os}
     with ENGINE.connect() as conn:
         vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()

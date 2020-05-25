@@ -22,6 +22,8 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 REGION_THRESHOLD = 1
 # The regions we care about
 REGIONS = ["eastus", "northcentralus", "southcentralus", "westus2"]
+# The operating systems we care about
+VM_OS = ["Windows", "Linux"]
 
 # Report variables
 timesDeallocated = 0
@@ -265,40 +267,42 @@ def monitorDisks():
 
 def manageRegions():
     sendDebug("Monitoring regions...")
+    # TODO: Add region support
     for location in REGIONS:
-        try:
-            availableVms = getVMLocationState(location, "RUNNING_AVAILABLE")
-            if not availableVms or len(availableVms) < REGION_THRESHOLD:
-                deallocVms = getVMLocationState(location, "DEALLOCATED")
-                vmToAllocate = None
-                if deallocVms:
-                    for vm in deallocVms:
-                        # Get VM state
-                        vm_state = CCLIENT.virtual_machines.instance_view(
-                            resource_group_name=os.getenv("VM_GROUP"),
-                            vm_name=vm["vm_name"],
-                        )
-                        if "deallocated" in vm_state.statuses[1].code:
-                            vmToAllocate = vm["vm_name"]
-                            break
+        for os in VM_OS:
+            try:
+                availableVms = getVMLocationState(location, "RUNNING_AVAILABLE", os)
+                if not availableVms or len(availableVms) < REGION_THRESHOLD:
+                    deallocVms = getVMLocationState(location, "DEALLOCATED", os)
+                    vmToAllocate = None
+                    if deallocVms:
+                        for vm in deallocVms:
+                            # Get VM state
+                            vm_state = CCLIENT.virtual_machines.instance_view(
+                                resource_group_name=os.getenv("VM_GROUP"),
+                                vm_name=vm["vm_name"],
+                            )
+                            if "deallocated" in vm_state.statuses[1].code:
+                                vmToAllocate = vm["vm_name"]
+                                break
 
-                if vmToAllocate:  # Reallocate from VMs
-                    sendInfo(
-                        "Reallocating VM " + vmToAllocate + " in region " + location
-                    )
-                    async_vm_alloc = CCLIENT.virtual_machines.start(
-                        os.getenv("VM_GROUP"), vmToAllocate
-                    )
-                    lockVM(vmToAllocate, True)
-                    updateVMState(vm["vm_name"], "STARTING")
-                    async_vm_alloc.wait()
-                    updateVMState(vm["vm_name"], "RUNNING_AVAILABLE")
-                    lockVM(vmToAllocate, False)
-                else:
-                    sendInfo("Creating VM in region " + location)
-                    createVM("Standard_NV6_Promo", location)
-        except:
-            reportError("Region monitor error for region " + location)
+                    if vmToAllocate:  # Reallocate from VMs
+                        sendInfo(
+                            "Reallocating VM " + vmToAllocate + " in region " + location + " with os " + os
+                        )
+                        async_vm_alloc = CCLIENT.virtual_machines.start(
+                            os.getenv("VM_GROUP"), vmToAllocate
+                        )
+                        lockVM(vmToAllocate, True)
+                        updateVMState(vm["vm_name"], "STARTING")
+                        async_vm_alloc.wait()
+                        updateVMState(vm["vm_name"], "RUNNING_AVAILABLE")
+                        lockVM(vmToAllocate, False)
+                    else:
+                        sendInfo("Creating VM in region " + location + " with os ")
+                        createVM("Standard_NV6_Promo", location, os)
+            except:
+                reportError("Region monitor error for region " + location)
 
 
 def monitorThread():
