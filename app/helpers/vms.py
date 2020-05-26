@@ -103,28 +103,23 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 sendInfo( "VM {} restarted successfully".format(vm_name))
 
         def checkFirstTime(disk_name):
-            session = Session()
             command = text(
                 """
                 SELECT * FROM disks WHERE "disk_name" = :disk_name
                 """
             )
             params = {"disk_name": disk_name}
-
-            disk_info = cleanFetchedSQL(session.execute(command, params).fetchone())
+            
+            with ENGINE.connect() as conn:
+                disk_info = cleanFetchedSQL(conn.execute(command, **params).fetchone())
+                conn.close()
 
             if disk_info:
-                session.commit()
-                session.close()
                 return disk_info["first_time"]
-
-            session.commit()
-            session.close()
 
             return False
 
         def changeFirstTime(disk_name, first_time=False):
-            session = Session()
             command = text(
                 """
                 UPDATE disks SET "first_time" = :first_time WHERE "disk_name" = :disk_name
@@ -132,9 +127,9 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
             )
             params = {"disk_name": disk_name, "first_time": first_time}
 
-            session.execute(command, params)
-            session.commit()
-            session.close()
+            with ENGINE.connect() as conn:
+                conn.execute(command, **params)
+                conn.close()
 
         disk_name = fetchVMCredentials(vm_name)["disk_name"]
         first_time = checkFirstTime(disk_name)
@@ -525,8 +520,6 @@ def lockVMAndUpdate(
 ):
     MAX_LOCK_TIME = 10
 
-    session = Session()
-
     command = text(
         """
         UPDATE v_ms SET state = :state, lock = :lock
@@ -552,9 +545,9 @@ def lockVMAndUpdate(
         "temporary_lock": temporary_lock,
     }
 
-    session.execute(command, params)
-    session.commit()
-    session.close()
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
 
 def genHaiku(n):
     """Generates an array of haiku names (no more than 15 characters) using haikunator
