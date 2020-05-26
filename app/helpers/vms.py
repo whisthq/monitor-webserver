@@ -70,12 +70,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
                 sendInfo( async_vm_start.result(timeout = 180))
 
-                if s:
-                    s.update_state(
-                        state="PENDING",
-                        meta={"msg": "Your cloud PC was started successfully."},
-                    )
-
                 sendInfo( "VM {} started successfully".format(vm_name))
 
             if needs_restart:
@@ -160,15 +154,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 change_last_updated=True,
                 verbose=False,
             )
-
-            if s:
-                s.update_state(
-                    state="PENDING",
-                    meta={
-                        "msg": "Logging you into your cloud PC. This should take less than two minutes."
-                    },
-                )
-
             winlogon = waitForWinlogon(vm_name)
             while winlogon < 0:
                 boot_if_necessary(vm_name, True)
