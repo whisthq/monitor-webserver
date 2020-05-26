@@ -492,6 +492,26 @@ def updateVMLocation(vm_name, location):
         conn.execute(command, **params)
         conn.close()
 
+def updateVMOS(vm_name, operating_system):
+    """Updates the OS of the vm entry in the v_ms sql table
+    Args:
+        vm_name (str): Name of vm of interest
+        operating_system (str): The OSof the vm
+    """
+    sendInfo("Updating OS for VM {} to {} in SQL".format(vm_name, operating_system))
+    command = text(
+        """
+        UPDATE v_ms
+        SET os = :operating_system
+        WHERE
+        "vm_name" = :vm_name
+        """
+    )
+    params = {"vm_name": vm_name, "operating_system": operating_system}
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
+
 
 def fetchVMCredentials(vm_name):
     """Fetches a vm from the v_ms sql table
