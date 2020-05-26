@@ -306,7 +306,7 @@ def manageRegions():
                             lockVM(vmToAllocate, False)
                         else:
                             sendInfo("Creating VM in region " + location + " with os " + operatingSystem)
-                            createVM("Standard_NV6_Promo", location, operatingSystem)
+                            createVM("standard_NC6_promo", location, operatingSystem)
                 except:
                     reportError("Region monitor error for region " + location)
 
