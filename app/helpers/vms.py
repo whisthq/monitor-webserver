@@ -32,7 +32,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
     try:
 
-        def boot_if_necessary(vm_name, needs_restart, ID):
+        def boot_if_necessary(vm_name, needs_restart):
             power_state = "PowerState/deallocated"
             vm_state = CCLIENT.virtual_machines.instance_view(
                 resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name
@@ -536,7 +536,7 @@ def fetchVMCredentials(vm_name):
 
 
 def lockVMAndUpdate(
-    vm_name, state, lock, temporary_lock, change_last_updated, verbose, ID=-1
+    vm_name, state, lock, temporary_lock, change_last_updated, verbose
 ):
     MAX_LOCK_TIME = 10
 
