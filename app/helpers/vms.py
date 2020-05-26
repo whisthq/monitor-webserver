@@ -217,14 +217,6 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
     # We will try to start/restart the VM and wait for it three times in total before giving up
     while not started and start_attempts < 3:
         start_command_tries = 0
-
-        # First, send a basic start or restart command. Try six times, if it fails, give up
-        if s:
-            s.update_state(
-                state="PENDING",
-                meta={"msg": "Cloud PC successfully received boot request."},
-            )
-
         while (
             sendVMStartCommand(vm_name, needs_restart, needs_winlogon) < 0
             and start_command_tries < 6
