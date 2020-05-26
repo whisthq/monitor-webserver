@@ -59,7 +59,7 @@ def monitorVMs():
             if vm["vm_name"] not in azureVms:
                 deleteVmFromTable(vm["vm_name"])
                 sendInfo("Deleted nonexistent VM " + vm["vm_name"] + " from database")
-            else:
+            elif not vm["lock"]:
                 # Get VM state
                 vm_state = CCLIENT.virtual_machines.instance_view(
                     resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
