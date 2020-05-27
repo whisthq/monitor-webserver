@@ -59,23 +59,8 @@ def monitorVMs():
             if vm["vm_name"] not in azureVms:
                 deleteVmFromTable(vm["vm_name"])
                 sendInfo("Deleted nonexistent VM " + vm["vm_name"] + " from database")
-            elif not vm["lock"]:
-                # Get VM state
-                vm_state = CCLIENT.virtual_machines.instance_view(
-                    resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
-                )
-                # Compare with database and update if there's a disreptancy
-                power_state = vm_state.statuses[1].code
-                if "starting" in power_state:
-                    if vm["state"] != "STARTING":
-                        updateVMState(vm["vm_name"], "STARTING")
-                elif "stopping" in power_state:
-                    if vm["state"] != "STOPPING":
-                        updateVMState(vm["vm_name"], "STOPPING")
-                elif "deallocating" in power_state:
-                    if vm["state"] != "DEALLOCATING":
-                        updateVMState(vm["vm_name"], "DEALLOCATING")
-                elif "stopped" in power_state:
+            else:
+                if "stopped" in power_state:
                     if vm["state"] != "STOPPED":
                         updateVMState(vm["vm_name"], "STOPPED")
                     if vm["lock"]:
@@ -85,62 +70,78 @@ def monitorVMs():
                         updateVMState(vm["vm_name"], "DEALLOCATED")
                     if vm["lock"]:
                         lockVM(vm["vm_name"], False)
-                elif "running" not in power_state:
-                    sendError(
-                        "State "
-                        + power_state
-                        + " incompatible with VM "
-                        + vm["vm_name"]
+                if not vm["lock"]:
+                    # Get VM state
+                    vm_state = CCLIENT.virtual_machines.instance_view(
+                        resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
                     )
-
-                # Automatically deallocate VMs on standby
-                if "running" in vm_state.statuses[1].code:
-                    shutdown = False
-                    if not vm["username"]:
-                        shutdown = True
-
-                    if not vm["last_updated"]:
-                        shutdown = True
-                    else:
-                        lastActive = datetime.strptime(
-                            vm["last_updated"], "%m/%d/%Y, %H:%M"
+                    # Compare with database and update if there's a disreptancy
+                    power_state = vm_state.statuses[1].code
+                    if "starting" in power_state:
+                        if vm["state"] != "STARTING":
+                            updateVMState(vm["vm_name"], "STARTING")
+                    elif "stopping" in power_state:
+                        if vm["state"] != "STOPPING":
+                            updateVMState(vm["vm_name"], "STOPPING")
+                    elif "deallocating" in power_state:
+                        if vm["state"] != "DEALLOCATING":
+                            updateVMState(vm["vm_name"], "DEALLOCATING")
+                    
+                    elif "running" not in power_state:
+                        sendError(
+                            "State "
+                            + power_state
+                            + " incompatible with VM "
+                            + vm["vm_name"]
                         )
-                        now = datetime.utcnow()
-                        if (
-                            timedelta(minutes=30) <= now - lastActive
-                            and vm["state"] == "RUNNING_AVAILABLE"
-                        ):
+                    # Automatically deallocate VMs on standby
+                    if "running" in vm_state.statuses[1].code:
+                        shutdown = False
+                        if not vm["username"]:
                             shutdown = True
 
-                    if vm["lock"]:
-                        shutdown = False
+                        if not vm["last_updated"]:
+                            shutdown = True
+                        else:
+                            lastActive = datetime.strptime(
+                                vm["last_updated"], "%m/%d/%Y, %H:%M"
+                            )
+                            now = datetime.utcnow()
+                            if (
+                                timedelta(minutes=30) <= now - lastActive
+                                and vm["state"] == "RUNNING_AVAILABLE"
+                            ):
+                                shutdown = True
 
-                    if vm["dev"] and vm["os"] != "Linux":
-                        shutdown = False
+                        if vm["lock"]:
+                            shutdown = False
 
-                    if vm["state"].endswith("ING"):
-                        shutdown = False
+                        if vm["dev"] and vm["os"] != "Linux":
+                            shutdown = False
 
-                    if (
-                        vm["location"] in freeVmsByRegion
-                        and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[vm['os']]
-                    ):
-                        shutdown = False
+                        if vm["state"].endswith("ING"):
+                            shutdown = False
 
-                    if shutdown:
-                        sendInfo(
-                            "Automatically deallocating VM " + vm["vm_name"] + "..."
-                        )
-                        async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-                            os.getenv("VM_GROUP"), vm["vm_name"]
-                        )
+                        if (
+                            vm["location"] in freeVmsByRegion
+                            and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[vm['os']]
+                        ):
+                            shutdown = False
 
-                        lockVM(vm["vm_name"], True)
-                        updateVMState(vm["vm_name"], "DEALLOCATING")
-                        async_vm_deallocate.wait()
-                        updateVMState(vm["vm_name"], "DEALLOCATED")
-                        lockVM(vm["vm_name"], False)
-                        timesDeallocated += 1
+                        if shutdown:
+                            sendInfo(
+                                "Automatically deallocating VM " + vm["vm_name"] + "..."
+                            )
+                            async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
+                                os.getenv("VM_GROUP"), vm["vm_name"]
+                            )
+
+                            lockVM(vm["vm_name"], True)
+                            updateVMState(vm["vm_name"], "DEALLOCATING")
+                            async_vm_deallocate.wait()
+                            updateVMState(vm["vm_name"], "DEALLOCATED")
+                            lockVM(vm["vm_name"], False)
+                            timesDeallocated += 1
 
         except:
             reportError("VM monitor for VM " + vm["vm_name"])
