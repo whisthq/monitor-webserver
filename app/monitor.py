@@ -1,5 +1,6 @@
 from imports import *
-from helperfuncs import *
+from helpers.sql import *
+from helpers.vms import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -18,10 +19,15 @@ RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
-# Threshold for min number of available VMs per region
-REGION_THRESHOLD = 1
+# Threshold for min number of available VMs per region and OS
+REGION_THRESHOLD = {
+    "Windows": 1,
+    "Linux": 0
+}
 # The regions we care about
-REGIONS = ["eastus", "northcentralus", "southcentralus"]
+REGIONS = ["eastus", "northcentralus", "southcentralus", "westus2"]
+# The operating systems we care about
+VM_OS = ["Windows", "Linux"]
 
 # Report variables
 timesDeallocated = 0
@@ -36,7 +42,7 @@ def monitorVMs():
     global timesDeallocated
     freeVmsByRegion = {}
     for region in REGIONS:
-        regionVms = getVMLocationState(region, "available")
+        regionVms = getVMLocationState(region, "RUNNING_AVAILABLE")
         if not regionVms:
             freeVmsByRegion[region] = 0
         else:
@@ -54,22 +60,7 @@ def monitorVMs():
                 deleteVmFromTable(vm["vm_name"])
                 sendInfo("Deleted nonexistent VM " + vm["vm_name"] + " from database")
             else:
-                # Get VM state
-                vm_state = CCLIENT.virtual_machines.instance_view(
-                    resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
-                )
-                # Compare with database and update if there's a disreptancy
-                power_state = vm_state.statuses[1].code
-                if "starting" in power_state:
-                    if vm["state"] != "STARTING":
-                        updateVMState(vm["vm_name"], "STARTING")
-                elif "stopping" in power_state:
-                    if vm["state"] != "STOPPING":
-                        updateVMState(vm["vm_name"], "STOPPING")
-                elif "deallocating" in power_state:
-                    if vm["state"] != "DEALLOCATING":
-                        updateVMState(vm["vm_name"], "DEALLOCATING")
-                elif "stopped" in power_state:
+                if "stopped" in power_state:
                     if vm["state"] != "STOPPED":
                         updateVMState(vm["vm_name"], "STOPPED")
                     if vm["lock"]:
@@ -79,62 +70,78 @@ def monitorVMs():
                         updateVMState(vm["vm_name"], "DEALLOCATED")
                     if vm["lock"]:
                         lockVM(vm["vm_name"], False)
-                elif "running" not in power_state:
-                    sendError(
-                        "State "
-                        + power_state
-                        + " incompatible with VM "
-                        + vm["vm_name"]
+                if not vm["lock"]:
+                    # Get VM state
+                    vm_state = CCLIENT.virtual_machines.instance_view(
+                        resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
                     )
-
-                # Automatically deallocate VMs on standby
-                if "running" in vm_state.statuses[1].code:
-                    shutdown = False
-                    if not vm["username"]:
-                        shutdown = True
-
-                    if not vm["last_updated"]:
-                        shutdown = True
-                    else:
-                        lastActive = datetime.strptime(
-                            vm["last_updated"], "%m/%d/%Y, %H:%M"
+                    # Compare with database and update if there's a disreptancy
+                    power_state = vm_state.statuses[1].code
+                    if "starting" in power_state:
+                        if vm["state"] != "STARTING":
+                            updateVMState(vm["vm_name"], "STARTING")
+                    elif "stopping" in power_state:
+                        if vm["state"] != "STOPPING":
+                            updateVMState(vm["vm_name"], "STOPPING")
+                    elif "deallocating" in power_state:
+                        if vm["state"] != "DEALLOCATING":
+                            updateVMState(vm["vm_name"], "DEALLOCATING")
+                    
+                    elif "running" not in power_state:
+                        sendError(
+                            "State "
+                            + power_state
+                            + " incompatible with VM "
+                            + vm["vm_name"]
                         )
-                        now = datetime.utcnow()
-                        if (
-                            timedelta(minutes=30) <= now - lastActive
-                            and vm["state"] == "RUNNING_AVAILABLE"
-                        ):
+                    # Automatically deallocate VMs on standby
+                    if "running" in vm_state.statuses[1].code:
+                        shutdown = False
+                        if not vm["username"]:
                             shutdown = True
 
-                    if vm["lock"]:
-                        shutdown = False
+                        if not vm["last_updated"]:
+                            shutdown = True
+                        else:
+                            lastActive = datetime.strptime(
+                                vm["last_updated"], "%m/%d/%Y, %H:%M"
+                            )
+                            now = datetime.utcnow()
+                            if (
+                                timedelta(minutes=30) <= now - lastActive
+                                and vm["state"] == "RUNNING_AVAILABLE"
+                            ):
+                                shutdown = True
 
-                    if vm["dev"] and vm["os"] != "Linux":
-                        shutdown = False
+                        if vm["lock"]:
+                            shutdown = False
 
-                    if vm["state"].endswith("ING"):
-                        shutdown = False
+                        if vm["dev"] and vm["os"] != "Linux":
+                            shutdown = False
 
-                    if (
-                        vm["location"] in freeVmsByRegion
-                        and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD
-                    ):
-                        shutdown = False
+                        if vm["state"].endswith("ING"):
+                            shutdown = False
 
-                    if shutdown:
-                        sendInfo(
-                            "Automatically deallocating VM " + vm["vm_name"] + "..."
-                        )
-                        async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-                            os.getenv("VM_GROUP"), vm["vm_name"]
-                        )
+                        if (
+                            vm["location"] in freeVmsByRegion
+                            and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[vm['os']]
+                        ):
+                            shutdown = False
 
-                        lockVM(vm["vm_name"], True)
-                        updateVMState(vm["vm_name"], "DEALLOCATING")
-                        async_vm_deallocate.wait()
-                        updateVMState(vm["vm_name"], "DEALLOCATED")
-                        lockVM(vm["vm_name"], False)
-                        timesDeallocated += 1
+                        if shutdown:
+                            sendInfo(
+                                "Automatically deallocating VM " + vm["vm_name"] + "..."
+                            )
+                            async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
+                                os.getenv("VM_GROUP"), vm["vm_name"]
+                            )
+
+                            lockVM(vm["vm_name"], True)
+                            updateVMState(vm["vm_name"], "DEALLOCATING")
+                            async_vm_deallocate.wait()
+                            updateVMState(vm["vm_name"], "DEALLOCATED")
+                            lockVM(vm["vm_name"], False)
+                            timesDeallocated += 1
 
         except:
             reportError("VM monitor for VM " + vm["vm_name"])
@@ -263,45 +270,46 @@ def monitorDisks():
             reportError("Disk monitor for disk " + dbDisk["disk_name"])
 
 
-# Increases available VMs for a region if the # of available VMs dips below a threshold
-
-
 def manageRegions():
+    # Increases available VMs for a region if the # of available VMs dips below a threshold
     sendDebug("Monitoring regions...")
-    for location in REGIONS:
-        try:
-            availableVms = getVMLocationState(location, "available")
-            if not availableVms or len(availableVms) < REGION_THRESHOLD:
-                unavailableVms = getVMLocationState(location, "unavailable")
-                vmToAllocate = None
-                if unavailableVms:
-                    for vm in unavailableVms:
-                        # Get VM state
-                        vm_state = CCLIENT.virtual_machines.instance_view(
-                            resource_group_name=os.getenv("VM_GROUP"),
-                            vm_name=vm["vm_name"],
-                        )
-                        if "deallocated" in vm_state.statuses[1].code:
-                            vmToAllocate = vm["vm_name"]
-                            break
+    # TODO: Add region support
+    for operatingSystem in VM_OS:
+        if(REGION_THRESHOLD[operatingSystem] > 0):
+            for location in REGIONS:
+                try:
+                    availableVms = getVMLocationState(location, "RUNNING_AVAILABLE", operatingSystem)
+                    if not availableVms or len(availableVms) < REGION_THRESHOLD[operatingSystem]:
+                        deallocVms = getVMLocationState(location, "DEALLOCATED", operatingSystem)
+                        vmToAllocate = None
+                        if deallocVms:
+                            for vm in deallocVms:
+                                # Get VM state
+                                vm_state = CCLIENT.virtual_machines.instance_view(
+                                    resource_group_name=os.getenv("VM_GROUP"),
+                                    vm_name=vm["vm_name"],
+                                )
+                                if "deallocated" in vm_state.statuses[1].code:
+                                    vmToAllocate = vm["vm_name"]
+                                    break
 
-                if vmToAllocate:  # Reallocate from VMs
-                    sendInfo(
-                        "Reallocating VM " + vmToAllocate + " in region " + location
-                    )
-                    async_vm_alloc = CCLIENT.virtual_machines.start(
-                        os.getenv("VM_GROUP"), vmToAllocate
-                    )
-                    lockVM(vmToAllocate, True)
-                    updateVMState(vm["vm_name"], "STARTING")
-                    async_vm_alloc.wait()
-                    updateVMState(vm["vm_name"], "RUNNING_AVAILABLE")
-                    lockVM(vmToAllocate, False)
-                else:
-                    sendInfo("Creating VM in region " + location)
-                    createVM("Standard_NV6_Promo", location)
-        except:
-            reportError("Region monitor error for region " + location)
+                        if vmToAllocate:  # Reallocate from VMs
+                            sendInfo(
+                                "Reallocating VM " + vmToAllocate + " in region " + location + " with os " + operatingSystem
+                            )
+                            async_vm_alloc = CCLIENT.virtual_machines.start(
+                                os.getenv("VM_GROUP"), vmToAllocate
+                            )
+                            lockVM(vmToAllocate, True)
+                            updateVMState(vm["vm_name"], "STARTING")
+                            async_vm_alloc.wait()
+                            updateVMState(vm["vm_name"], "RUNNING_AVAILABLE")
+                            lockVM(vmToAllocate, False)
+                        else:
+                            sendInfo("Creating VM in region " + location + " with os " + operatingSystem)
+                            createVM("standard_NC6_promo", location, operatingSystem)
+                except:
+                    reportError("Region monitor error for region " + location)
 
 
 def monitorThread():
