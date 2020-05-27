@@ -66,7 +66,6 @@ def monitorVMs():
                     resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
                 )
                 # Compare with database and update if there's a disreptancy
-                print(vm_state.statuses[1].code)
                 power_state = vm_state.statuses[1].code
 
                 if "stopped" in power_state:
@@ -75,9 +74,12 @@ def monitorVMs():
                     if vm["lock"]:
                         lockVM(vm["vm_name"], False)
                 elif "deallocated" in power_state:
+                    print("deallocted")
                     if vm["state"] != "DEALLOCATED":
+                        print("updatevm")
                         updateVMState(vm["vm_name"], "DEALLOCATED")
                     if vm["lock"]:
+                        print("unlock")
                         lockVM(vm["vm_name"], False)
                 if not vm["lock"]:
                     if "starting" in power_state:
