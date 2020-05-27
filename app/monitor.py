@@ -56,6 +56,7 @@ def monitorVMs():
 
     for vm in vms:
         try:
+            test = 29/0
             if vm["vm_name"] not in azureVms:
                 deleteVmFromTable(vm["vm_name"])
                 sendInfo("Deleted nonexistent VM " + vm["vm_name"] + " from database")
@@ -74,12 +75,9 @@ def monitorVMs():
                     if vm["lock"]:
                         lockVM(vm["vm_name"], False)
                 elif "deallocated" in power_state:
-                    print("deallocted")
                     if vm["state"] != "DEALLOCATED":
-                        print("updatevm")
                         updateVMState(vm["vm_name"], "DEALLOCATED")
                     if vm["lock"]:
-                        print("unlock")
                         lockVM(vm["vm_name"], False)
                 if not vm["lock"]:
                     if "starting" in power_state:
@@ -91,14 +89,7 @@ def monitorVMs():
                     elif "deallocating" in power_state:
                         if vm["state"] != "DEALLOCATING":
                             updateVMState(vm["vm_name"], "DEALLOCATING")
-                    
-                    elif "running" not in power_state:
-                        sendError(
-                            "State "
-                            + power_state
-                            + " incompatible with VM "
-                            + vm["vm_name"]
-                        )
+
                     # Automatically deallocate VMs on standby
                     if "running" in vm_state.statuses[1].code:
                         shutdown = False
