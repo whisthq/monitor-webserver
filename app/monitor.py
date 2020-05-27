@@ -60,6 +60,14 @@ def monitorVMs():
                 deleteVmFromTable(vm["vm_name"])
                 sendInfo("Deleted nonexistent VM " + vm["vm_name"] + " from database")
             else:
+                # Update the database vm state
+                # Get VM state
+                vm_state = CCLIENT.virtual_machines.instance_view(
+                    resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
+                )
+                # Compare with database and update if there's a disreptancy
+                power_state = vm_state.statuses[1].code
+
                 if "stopped" in power_state:
                     if vm["state"] != "STOPPED":
                         updateVMState(vm["vm_name"], "STOPPED")
@@ -71,12 +79,6 @@ def monitorVMs():
                     if vm["lock"]:
                         lockVM(vm["vm_name"], False)
                 if not vm["lock"]:
-                    # Get VM state
-                    vm_state = CCLIENT.virtual_machines.instance_view(
-                        resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
-                    )
-                    # Compare with database and update if there's a disreptancy
-                    power_state = vm_state.statuses[1].code
                     if "starting" in power_state:
                         if vm["state"] != "STARTING":
                             updateVMState(vm["vm_name"], "STARTING")
