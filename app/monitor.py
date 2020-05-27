@@ -56,7 +56,6 @@ def monitorVMs():
 
     for vm in vms:
         try:
-            test = 29/0
             if vm["vm_name"] not in azureVms:
                 deleteVmFromTable(vm["vm_name"])
                 sendInfo("Deleted nonexistent VM " + vm["vm_name"] + " from database")

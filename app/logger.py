@@ -57,17 +57,6 @@ def sendError(log, papertrail=True):
         logger.error(log)
     print(log)
 
-def sendException(log, papertrail=True):
-    """Logs exception with trace back
-
-    Args:
-        log (str): The message
-        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
-    """
-    if papertrail:
-        logger.exception(log)
-    print(log)
-
 def sendCritical(log, papertrail=True):
     """Logs critical errors
 

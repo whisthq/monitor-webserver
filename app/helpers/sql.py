@@ -44,7 +44,7 @@ def reportError(service):
     """
     error = traceback.format_exc()
     errorTime = datetime.utcnow().strftime("%m-%d-%Y, %H:%M:%S")
-    msg = "ERROR for " + service + ": "
+    msg = "ERROR for " + service + ": " + error
 
     # Log error in log.txt
     # file = open("log.txt", "a")
@@ -52,7 +52,7 @@ def reportError(service):
     # file.close()
 
     # Send log to Papertrail
-    sendException(msg)
+    sendError(msg)
 
     # Send error email to logs@fractalcomputers.com
     # title = 'Error in monitoring service: [' + service + ']'
