@@ -66,7 +66,7 @@ def monitorVMs():
                     resource_group_name=os.getenv("VM_GROUP"), vm_name=vm["vm_name"]
                 )
                 # Compare with database and update if there's a disreptancy
-                print(vm_state.statuses)
+                print(vm_state.statuses[1].code)
                 power_state = vm_state.statuses[1].code
 
                 if "stopped" in power_state:
