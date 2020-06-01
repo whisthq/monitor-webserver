@@ -25,7 +25,7 @@ REGION_THRESHOLD = {
     "Linux": 0
 }
 # The regions we care about
-REGIONS = ["eastus", "northcentralus", "southcentralus", "westus2"]
+REGIONS = ["eastus", "northcentralus", "southcentralus"]
 # The operating systems we care about
 VM_OS = ["Windows", "Linux"]
 
