@@ -1,6 +1,6 @@
 # Fractal Monitor Webserver
 
-![Python App CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20Webserver%20CI/badge.svg)
+![Python App CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20App%20CI/badge.svg)
 
 This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the heroku CLI.
 
