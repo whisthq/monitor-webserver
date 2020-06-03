@@ -1,12 +1,18 @@
 # Fractal Monitor Webserver
 
+![Python App CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20App%20CI/badge.svg)
+
 This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the heroku CLI.
 
 Heroku: https://fractal-monitor-server.herokuapp.com
 
 Heroku Dashboard: https://dashboard.heroku.com/apps/fractal-monitor-server
 
-## Local setup (Windows/MacOS)
+## Development
+
+Here are the main setups to run this webserver locally and on Heroku. If developing mainly in Heroku, you should make sure to commit your latest code to GitHub, since this is where our development happens. We have basic continuous integration set via GitHub Actions. For every push or PR to master, the commit will be built and formatted via Python Black, see below. You should always make sure that your code passes the tests in the Actions tab.
+
+### Local setup (Windows/MacOS)
 
 1. Set up the Heroku CLI on your computer
 2. Check your python version by typing `python -V`.
@@ -20,7 +26,7 @@ Heroku Dashboard: https://dashboard.heroku.com/apps/fractal-monitor-server
 4. Import the environment variables into your computer by typing `heroku config -s --app fractal-monitor-server >> .env`.
 5. Type `python monitor.py` to start the monitor locally.
 
-## Run on Heroku
+### Run on Heroku
 
 `https://git.heroku.com/fractal-monitor-server.git`
 
@@ -28,7 +34,7 @@ To push to the Heroku servers, you’ll first need to set up the Heroku CLI on y
 
 First, add the Heroku server as a remote: `heroku git:remote -a fractal-monitor-server`. You will need to be added as a collaborator for the fractal-monitor-server Heroku app. Contact Ming, Phil or Jonathan to be added.
 
-To push to the server, first make sure you’re in your own branch, then type `git add .`, then `git commit -m “{COMMIT_MESSAGE}”`, then finally `git push heroku {YOUR_BRANCH_NAME}:master`. If you get a git pull error, git pull by typing `git pull heorku master` to pull from Heroku or `git pull origin master` to pull from Github.
+To push to the server, first make sure you’re in your own branch, then type `git add .`, `git commit -m “{COMMIT_MESSAGE}”`, then finally `git push heroku {YOUR_BRANCH_NAME}:master`. If you get a git pull error, git pull by typing `git pull heorku master` to pull from Heroku or `git pull origin master` to pull from Github.
 
 To run the monitor script, type `heroku run:detached python monitor.py`.
 
@@ -36,6 +42,10 @@ To view the verbose server logs, type `heroku logs --tail`.
 The server also logs INFO, WARNING, ERROR, and CRITICAL logs to PaperTrail, as [MONITOR].
 
 To view the current running processes, type `heroku ps`.
+
+## Publishing
+
+Once you are ready to deploy to production, you can merge your code into master and then run `./update.sh`. The script will push your local code to Heroku on the master branch, and notify the team via Slack.
 
 ## Styling
 
