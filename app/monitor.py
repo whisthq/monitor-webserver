@@ -341,7 +341,7 @@ def reportThread():
         deallocatedVms = 0
         vms = fetchAllVms()
         for vm in vms:
-            if "NOT_RUNNING" in vm["state"]:
+            if "DEALLOCATED" in vm["state"]:
                 deallocatedVms += 1
 
             if vm["location"] == "eastus":
