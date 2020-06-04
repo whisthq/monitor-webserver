@@ -9,7 +9,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-syslog = SysLogHandler(address=(os.getenv("LOGGER_URL"), 44138))
+syslog = SysLogHandler(address=(os.getenv("LOGGER_URL"), 15317))
 syslog.addFilter(ContextFilter())
 
 format = "%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] [MONITOR]: %(message)s"

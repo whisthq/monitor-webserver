@@ -320,9 +320,10 @@ def reportThread():
     global timesDeallocated
     while True:
         timesDeallocated = 0
-        time.sleep(60 * 60)
+        # TODO: Change back
+        time.sleep(60)
 
-        timestamp = datetime.utcnow().strftime("%m-%d-%Y, %H:%M:%S")
+        timestamp = datetime.utcnow()
         vmByRegion = {
             "eastus": 0,
             "southcentralus": 0,
