@@ -335,8 +335,7 @@ def reportThread():
     global timesDeallocated
     while True:
         timesDeallocated = 0
-        # TODO: Change back
-        time.sleep(60)
+        time.sleep(60 * 60)
 
         timestamp = int(time.time())
         vmByRegion = {
