@@ -111,7 +111,7 @@ def monitorVMs():
                         if vm["lock"]:
                             shutdown = False
 
-                        if vm["dev"] and vm["os"] != "Linux":
+                        if vm["dev"]:
                             shutdown = False
 
                         if vm["state"].endswith("ING"):
