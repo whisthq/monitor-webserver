@@ -128,6 +128,7 @@ def updateVMState(vm_name, state):
         conn.execute(command, **params)
         conn.close()
 
+
 def updateDiskState(disk_name, state):
     """Updates the state of a disk in the disks sql table
 
@@ -148,6 +149,7 @@ def updateDiskState(disk_name, state):
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
+
 
 def getMostRecentActivity(username):
     """Gets the last activity of a user
@@ -286,35 +288,44 @@ def getVMLocationState(location, state, operatingSys=None):
             AND ("temporary_lock" IS NULL OR "temporary_lock" < :timestamp)
             """
         )
-    
 
-    
-    params = {"location": location, "timestamp": nowTime, "state": state, "os": operatingSys}
+    params = {
+        "location": location,
+        "timestamp": nowTime,
+        "state": state,
+        "os": operatingSys,
+    }
     with ENGINE.connect() as conn:
         vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
         return vms
 
 
-def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
+def addReportTable(ts, totalDealloc, logons, logoffs, vms, users, liveUsers):
     command = text(
         """
-        INSERT INTO status_report("timestamp", "deallocated_vms", "total_vms_deallocated", "logons", "logoffs", "number_users_eastus", "number_vms_eastus", "number_users_southcentralus", "number_vms_southcentralus", "number_users_northcentralus", "number_vms_northcentralus") 
-        VALUES(:timestamp, :deallocated_vms, :total_vms_deallocated, :logons, :logoffs, :number_users_eastus, :number_vms_eastus, :number_users_southcentralus, :number_vms_southcentralus, :number_users_northcentralus, :number_vms_northcentralus)
+        INSERT INTO status_report("timestamp", "total_vms_deallocated", "logons", "logoffs", "users_online", "number_users_eastus", "number_users_southcentralus", "number_users_northcentralus", "eastus_available", "eastus_unavailable", "eastus_deallocated", "northcentralus_available", "northcentralus_unavailable", "northcentralus_deallocated", "southcentralus_available", "southcentralus_unavailable", "southcentralus_deallocated") 
+        VALUES(:timestamp, :total_vms_deallocated, :logons, :logoffs, :users_online, :number_users_eastus, :number_users_southcentralus, :number_users_northcentralus, :eastus_available, :eastus_unavailable, :eastus_deallocated, :northcentralus_available, :northcentralus_unavailable, :northcentralus_deallocated, :southcentralus_available, :southcentralus_unavailable, :southcentralus_deallocated)
         """
     )
     params = {
         "timestamp": ts,
-        "deallocated_vms": deallocVm,
         "total_vms_deallocated": totalDealloc,
         "logons": logons,
         "logoffs": logoffs,
+        "users_online": liveUsers,
         "number_users_eastus": users["eastus"],
-        "number_vms_eastus": vms["eastus"],
         "number_users_southcentralus": users["southcentralus"],
-        "number_vms_southcentralus": vms["southcentralus"],
         "number_users_northcentralus": users["northcentralus"],
-        "number_vms_northcentralus": vms["northcentralus"],
+        "eastus_available": vms["eastus"]["available"],
+        "eastus_unavailable": vms["eastus"]["unavailable"],
+        "eastus_deallocated": vms["eastus"]["deallocated"],
+        "northcentralus_available": vms["northcentralus"]["available"],
+        "northcentralus_unavailable": vms["northcentralus"]["unavailable"],
+        "northcentralus_deallocated": vms["northcentralus"]["deallocated"],
+        "southcentralus_available": vms["southcentralus"]["available"],
+        "southcentralus_unavailable": vms["southcentralus"]["unavailable"],
+        "southcentralus_deallocated": vms["southcentralus"]["deallocated"],
     }
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
@@ -344,4 +355,3 @@ def getLogons(timestamp, action):
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         return activity
-

@@ -325,48 +325,43 @@ def reportThread():
 
         timestamp = datetime.utcnow()
         vmByRegion = {
-            "eastus": 0,
-            "southcentralus": 0,
-            "northcentralus": 0,
+            "eastus": {"available": 0, "unavailable": 0, "deallocated": 0},
+            "southcentralus": {"available": 0, "unavailable": 0, "deallocated": 0},
+            "northcentralus": {"available": 0, "unavailable": 0, "deallocated": 0},
         }
         users = {
             "eastus": 0,
             "southcentralus": 0,
             "northcentralus": 0,
         }
+        liveUsers = 0
         oneHourAgo = (datetime.utcnow() - timedelta(hours=1)).strftime(
             "%m-%d-%Y, %H:%M:%S"
         )
         logons = getLogons(oneHourAgo, "logon")["count"]
         logoffs = getLogons(oneHourAgo, "logoff")["count"]
-        deallocatedVms = 0
         vms = fetchAllVms()
         for vm in vms:
-            if "DEALLOCATED" in vm["state"]:
-                deallocatedVms += 1
-
-            if vm["location"] == "eastus":
-                vmByRegion["eastus"] += 1
+            if vm["location"] in REGIONS:
+                if "DEALLOCATED" in vm["state"]:
+                    vmByRegion[vm["location"]]["deallocated"] +=1
+                elif "RUNNING_AVAILABLE" in vm["state"]:
+                    vmByRegion[vm["location"]]["available"] +=1
+                elif "RUNNING_UNAVAILABLE" in vm["state"]:
+                    vmByRegion[vm["location"]]["unavailable"] +=1
+                    liveUsers += 1
                 if vm["username"]:
-                    users["eastus"] += 1
-            elif vm["location"] == "southcentralus":
-                vmByRegion["southcentralus"] += 1
-                if vm["username"]:
-                    users["southcentralus"] += 1
-            elif vm["location"] == "northcentralus":
-                vmByRegion["northcentralus"] += 1
-                if vm["username"]:
-                    users["northcentralus"] += 1
+                    users[vm["location"]] += 1
 
         try:
             addReportTable(
                 timestamp,
-                deallocatedVms,
                 timesDeallocated,
                 logons,
                 logoffs,
                 vmByRegion,
                 users,
+                liveUsers,
             )
             sendInfo("Generated hourly report")
         except:
