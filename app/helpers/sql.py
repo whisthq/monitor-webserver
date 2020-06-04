@@ -114,7 +114,7 @@ def updateVMState(vm_name, state):
         vm_name (str): Name of the vm to update
         state (str): The new state of the vm
     """
-    sendInfo("Automatically updating state for VM " + vm_name + " to " + state)
+    sendInfo("Updating state for VM " + vm_name + " to " + state)
     command = text(
         """
         UPDATE v_ms
@@ -128,6 +128,26 @@ def updateVMState(vm_name, state):
         conn.execute(command, **params)
         conn.close()
 
+def updateDiskState(disk_name, state):
+    """Updates the state of a disk in the disks sql table
+
+    Args:
+        disk_name (str): Name of the disk to update
+        state (str): The new state of the disk
+    """
+    sendInfo("Updating state for disk " + disk_name + " to " + state)
+    command = text(
+        """
+        UPDATE disks
+        SET state = :state
+        WHERE
+        "disk_name" = :disk_name
+        """
+    )
+    params = {"state": state, "disk_name": disk_name}
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
 
 def getMostRecentActivity(username):
     """Gets the last activity of a user
