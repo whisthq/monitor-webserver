@@ -20,10 +20,7 @@ CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
 # Threshold for min number of available VMs per region and OS
-REGION_THRESHOLD = {
-    "Windows": 1,
-    "Linux": 0
-}
+REGION_THRESHOLD = {"Windows": 1, "Linux": 0}
 # The regions we care about
 REGIONS = ["eastus", "northcentralus", "southcentralus"]
 # The operating systems we care about
@@ -119,7 +116,8 @@ def monitorVMs():
 
                         if (
                             vm["location"] in freeVmsByRegion
-                            and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[vm['os']]
+                            and freeVmsByRegion[vm["location"]]
+                            <= REGION_THRESHOLD[vm["os"]]
                         ):
                             shutdown = False
 
@@ -270,12 +268,19 @@ def manageRegions():
     sendDebug("Monitoring regions...")
     # TODO: Add region support
     for operatingSystem in VM_OS:
-        if(REGION_THRESHOLD[operatingSystem] > 0):
+        if REGION_THRESHOLD[operatingSystem] > 0:
             for location in REGIONS:
                 try:
-                    availableVms = getVMLocationState(location, "RUNNING_AVAILABLE", operatingSystem)
-                    if not availableVms or len(availableVms) < REGION_THRESHOLD[operatingSystem]:
-                        deallocVms = getVMLocationState(location, "DEALLOCATED", operatingSystem)
+                    availableVms = getVMLocationState(
+                        location, "RUNNING_AVAILABLE", operatingSystem
+                    )
+                    if (
+                        not availableVms
+                        or len(availableVms) < REGION_THRESHOLD[operatingSystem]
+                    ):
+                        deallocVms = getVMLocationState(
+                            location, "DEALLOCATED", operatingSystem
+                        )
                         vmToAllocate = None
                         if deallocVms:
                             for vm in deallocVms:
@@ -290,7 +295,12 @@ def manageRegions():
 
                         if vmToAllocate:  # Reallocate from VMs
                             sendInfo(
-                                "Reallocating VM " + vmToAllocate + " in region " + location + " with os " + operatingSystem
+                                "Reallocating VM "
+                                + vmToAllocate
+                                + " in region "
+                                + location
+                                + " with os "
+                                + operatingSystem
                             )
                             async_vm_alloc = CCLIENT.virtual_machines.start(
                                 os.getenv("VM_GROUP"), vmToAllocate
@@ -301,7 +311,12 @@ def manageRegions():
                             updateVMState(vm["vm_name"], "RUNNING_AVAILABLE")
                             lockVM(vmToAllocate, False)
                         else:
-                            sendInfo("Creating VM in region " + location + " with os " + operatingSystem)
+                            sendInfo(
+                                "Creating VM in region "
+                                + location
+                                + " with os "
+                                + operatingSystem
+                            )
                             createVM("standard_NC6_promo", location, operatingSystem)
                 except:
                     reportError("Region monitor error for region " + location)
@@ -323,7 +338,7 @@ def reportThread():
         # TODO: Change back
         time.sleep(60)
 
-        timestamp = datetime.utcnow()
+        timestamp = int(time.time())
         vmByRegion = {
             "eastus": {"available": 0, "unavailable": 0, "deallocated": 0},
             "southcentralus": {"available": 0, "unavailable": 0, "deallocated": 0},
@@ -344,11 +359,11 @@ def reportThread():
         for vm in vms:
             if vm["location"] in REGIONS:
                 if "DEALLOCATED" in vm["state"]:
-                    vmByRegion[vm["location"]]["deallocated"] +=1
+                    vmByRegion[vm["location"]]["deallocated"] += 1
                 elif "RUNNING_AVAILABLE" in vm["state"]:
-                    vmByRegion[vm["location"]]["available"] +=1
+                    vmByRegion[vm["location"]]["available"] += 1
                 elif "RUNNING_UNAVAILABLE" in vm["state"]:
-                    vmByRegion[vm["location"]]["unavailable"] +=1
+                    vmByRegion[vm["location"]]["unavailable"] += 1
                     liveUsers += 1
                 if vm["username"]:
                     users[vm["location"]] += 1
