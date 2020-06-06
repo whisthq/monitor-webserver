@@ -20,7 +20,7 @@ Here are the main setups to run this webserver locally and on Heroku. If develop
     - Create a virtual environment for yourself by typing `virtualenv env` and then run the python executable listed in the install text, i.e. `source env\Scripts\activate` in Windows, or `source env/bin/activate` on Linux.
   - If you have Python >3.6 or Python <3.0:
     - Create a Python 3.6 virtual environment. To do this, first install python 3.6.8 from the Python website.
-    - Find the directory where python.exe is installed. Make sure you are cd'ed into the vm-monitor folder, then type `virtualenv --python=[DIRECTORY PATH] venv` in your terminal. The terminal should output a "created virtual environment CPython3.6.8" message.
+    - Find the directory where python.exe is installed. Make sure you are cd'ed into the monitor-webserver folder, then type `virtualenv --python=[DIRECTORY PATH] venv` in your terminal. The terminal should output a "created virtual environment CPython3.6.8" message.
     - Activate it by typing `source venv\Scripts\activate` (Windows) or `source venv/bin/activate` (MacOS/Linux). You will need to type this last command every time to access your virtual environment.
 3. Install everything by typing `pip install -r requirements.txt`. Make sure you're in the virtual environment when doing this.
 4. Import the environment variables into your computer by typing `heroku config -s --app fractal-monitor-server >> .env`.
@@ -86,4 +86,4 @@ To get started right away with sensible defaults:
 black {source_file_or_directory}
 ```
 
-Black doesn't provide many options. You can list them by running `black --help`:
+To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`:
