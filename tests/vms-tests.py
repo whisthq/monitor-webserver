@@ -1,61 +1,79 @@
-
-
-
 from app.helpers.vms import (
-
-
-
-
-
+    sendVMStartCommand,
+    fractalVMStart,
+    createVMParameters,
+    createVM,
+    getIP,
+    updateVMIP,
+    updateVMLocation,
+    updateVMOS,
+    fetchVMCredentials,
+    lockVMAndUpdate,
+    genHaiku,
+    genVMName,
+    createNic,
 )
+from app.helpers.sql import getVM
 
 
-
-def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
-
-def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
-
-def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Windows"):
-
-def createVM(vm_size, location, operating_system):
-
-def getIP(vm):
-
-def updateVMIP(vm_name, ip):
-
-def updateVMLocation(vm_name, location):
-
-def updateVMOS(vm_name, operating_system):
-
-def fetchVMCredentials(vm_name):
-
-def lockVMAndUpdate(vm_name, state, lock, temporary_lock, change_last_updated, verbose):
-
-def genHaiku(n):
-
-def genVMName():
-
-def createNic(name, location, tries):
-
-
-
-def test_cleanFetchedSQL():
-    # fetchAllDisks() calls cleanFetchedSQL
-    assert isinstance(fetchAllDisks(), list)
-
-def test_reportError():
-    assert reportError("TEST SERVICE") == None
-    
-def test_fetchAllVms():
-    assert isinstance(fetchAllVms(), list)
-
-def test_getVM():
-    assert getVM('dev-nv6') != None
-    assert getVM('this-vm-doesnt-exist') == None
-
-def test_updateVMState():
+def test_sendVMStartCommand():
     # can't really be unit tested
     assert True
 
 
-    
+def test_fractalVMStart():
+    # can't really be unit tested
+    assert True
+
+
+def test_createVMParameters():
+    # can't really be unit tested
+    assert True
+
+
+def test_createVM():
+    # can't really be unit tested
+    assert True
+
+
+def test_getIP():
+    assert isinstance(getIP(getVM("dev-nv6")), str)
+
+
+def test_updateVMIP():
+    # can't really be unit tested
+    assert True
+
+
+def updateVMLocation(vm_name, location):
+    # can't really be unit tested
+    assert True
+
+
+def updateVMOS(vm_name, operating_system):
+    # can't really be unit tested
+    assert True
+
+
+def test_fetchVMCredentials():
+    assert isinstance(fetchVMCredentials("dev-nv6"), dict)
+
+
+def test_lockVMAndUpdate():
+    # can't really be unit tested
+    assert True
+
+
+def test_genHaiku():
+    assert isinstance(genHaiku(1), list)
+    assert isinstance(genHaiku(5), list)
+    assert isinstance(genHaiku(15), list)
+
+
+def test_genVMName():
+    assert isinstance(genVMName(), str)
+
+
+def createNic(name, location, tries):
+    # can't really be unit tested
+    assert True
