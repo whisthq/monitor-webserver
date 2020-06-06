@@ -86,4 +86,4 @@ To get started right away with sensible defaults:
 black {source_file_or_directory}
 ```
 
-Black doesn't provide many options. You can list them by running `black --help`:
+To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`:

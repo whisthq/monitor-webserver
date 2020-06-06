@@ -39,7 +39,7 @@ def reportError(service):
     """"Logs an error message with datetime, service name, and traceback in log.txt file. Also send an error log to papertrail
 
     Args:
-        service (str): The name of the service in which the erorr occured
+        service (str): The name of the service in which the error occured
     """
     error = traceback.format_exc()
     errorTime = datetime.utcnow().strftime("%m-%d-%Y, %H:%M:%S")
@@ -135,7 +135,7 @@ def getMostRecentActivity(username):
         username (str): Username of the user
 
     Returns:
-        str: The latest activity of the user
+        dict: The latest activity of the user
     """
     command = text(
         """

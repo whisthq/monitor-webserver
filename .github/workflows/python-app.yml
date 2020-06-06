@@ -28,7 +28,7 @@ jobs:
       run: |
         pytest tests/logger-tests.py
         pytest tests/sql-tests.py
-      # pytest tests/vms-tests.py
-      # pytest tests/monitor-tests.py
+        pytest tests/vms-tests.py
+        pytest tests/monitor-tests.py
     - name: Format with Python Black
       run: black .
