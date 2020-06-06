@@ -20,10 +20,7 @@ CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
 # Threshold for min number of available VMs per region and OS
-REGION_THRESHOLD = {
-    "Windows": 1,
-    "Linux": 0
-}
+REGION_THRESHOLD = {"Windows": 1, "Linux": 0}
 # The regions we care about
 REGIONS = ["eastus", "northcentralus", "southcentralus", "westus2"]
 # The operating systems we care about
@@ -270,12 +267,19 @@ def manageRegions():
     sendDebug("Monitoring regions...")
     # TODO: Add region support
     for operatingSystem in VM_OS:
-        if(REGION_THRESHOLD[operatingSystem] > 0):
+        if REGION_THRESHOLD[operatingSystem] > 0:
             for location in REGIONS:
                 try:
-                    availableVms = getVMLocationState(location, "RUNNING_AVAILABLE", operatingSystem)
-                    if not availableVms or len(availableVms) < REGION_THRESHOLD[operatingSystem]:
-                        deallocVms = getVMLocationState(location, "DEALLOCATED", operatingSystem)
+                    availableVms = getVMLocationState(
+                        location, "RUNNING_AVAILABLE", operatingSystem
+                    )
+                    if (
+                        not availableVms
+                        or len(availableVms) < REGION_THRESHOLD[operatingSystem]
+                    ):
+                        deallocVms = getVMLocationState(
+                            location, "DEALLOCATED", operatingSystem
+                        )
                         vmToAllocate = None
                         if deallocVms:
                             for vm in deallocVms:
@@ -290,7 +294,12 @@ def manageRegions():
 
                         if vmToAllocate:  # Reallocate from VMs
                             sendInfo(
-                                "Reallocating VM " + vmToAllocate + " in region " + location + " with os " + operatingSystem
+                                "Reallocating VM "
+                                + vmToAllocate
+                                + " in region "
+                                + location
+                                + " with os "
+                                + operatingSystem
                             )
                             async_vm_alloc = CCLIENT.virtual_machines.start(
                                 os.getenv("VM_GROUP"), vmToAllocate

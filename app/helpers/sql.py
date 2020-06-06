@@ -266,10 +266,13 @@ def getVMLocationState(location, state, operatingSys=None):
             AND ("temporary_lock" IS NULL OR "temporary_lock" < :timestamp)
             """
         )
-    
 
-    
-    params = {"location": location, "timestamp": nowTime, "state": state, "os": operatingSys}
+    params = {
+        "location": location,
+        "timestamp": nowTime,
+        "state": state,
+        "os": operatingSys,
+    }
     with ENGINE.connect() as conn:
         vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
@@ -324,4 +327,3 @@ def getLogons(timestamp, action):
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         return activity
-

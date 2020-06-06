@@ -1,4 +1,4 @@
-from .imports import *    
+from .imports import *
 
 # Logging
 class ContextFilter(logging.Filter):
@@ -67,4 +67,3 @@ def sendCritical(log, papertrail=True):
     if papertrail:
         logger.critical(log)
     print(log)
-

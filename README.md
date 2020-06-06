@@ -12,7 +12,7 @@ Heroku Dashboard: https://dashboard.heroku.com/apps/fractal-monitor-server
 
 Here are the main setups to run this webserver locally and on Heroku. If developing mainly in Heroku, you should make sure to commit your latest code to GitHub, since this is where our development happens. We have basic continuous integration set via GitHub Actions. For every push or PR to master, the commit will be built and formatted via Python Black, see below. You should always make sure that your code passes the tests in the Actions tab.
 
-### Local setup (Windows/MacOS)
+### Local Setup (Windows/MacOS)
 
 1. Set up the Heroku CLI on your computer
 2. Check your python version by typing `python -V`.
