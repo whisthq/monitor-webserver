@@ -116,7 +116,8 @@ def monitorVMs():
 
                         if (
                             vm["location"] in freeVmsByRegion
-                            and freeVmsByRegion[vm["location"]] <= REGION_THRESHOLD[vm['os']]
+                            and freeVmsByRegion[vm["location"]]
+                            <= REGION_THRESHOLD[vm["os"]]
                         ):
                             shutdown = False
 
@@ -310,7 +311,12 @@ def manageRegions():
                             updateVMState(vm["vm_name"], "RUNNING_AVAILABLE")
                             lockVM(vmToAllocate, False)
                         else:
-                            sendInfo("Creating VM in region " + location + " with os " + operatingSystem)
+                            sendInfo(
+                                "Creating VM in region "
+                                + location
+                                + " with os "
+                                + operatingSystem
+                            )
                             createVM("standard_NC6_promo", location, operatingSystem)
                 except:
                     reportError("Region monitor error for region " + location)
