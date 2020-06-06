@@ -71,7 +71,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
                 sendInfo(async_vm_start.result(timeout=180))
 
-                sendInfo( "VM {} started successfully".format(vm_name))
+                sendInfo("VM {} started successfully".format(vm_name))
 
             if needs_restart:
                 sendInfo(
@@ -104,7 +104,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 """
             )
             params = {"disk_name": disk_name}
-            
+
             with ENGINE.connect() as conn:
                 disk_info = cleanFetchedSQL(conn.execute(command, **params).fetchone())
                 conn.close()
@@ -478,6 +478,7 @@ def updateVMLocation(vm_name, location):
         conn.execute(command, **params)
         conn.close()
 
+
 def updateVMOS(vm_name, operating_system):
     """Updates the OS of the vm entry in the v_ms sql table
     Args:
@@ -521,9 +522,7 @@ def fetchVMCredentials(vm_name):
         return vm_info
 
 
-def lockVMAndUpdate(
-    vm_name, state, lock, temporary_lock, change_last_updated, verbose
-):
+def lockVMAndUpdate(vm_name, state, lock, temporary_lock, change_last_updated, verbose):
     MAX_LOCK_TIME = 10
 
     command = text(
@@ -663,4 +662,3 @@ def createNic(name, location, tries):
             return createNic(name, location, tries + 1)
         else:
             return None
-            
