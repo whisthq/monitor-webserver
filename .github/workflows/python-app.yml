@@ -5,9 +5,9 @@ name: Python Webapp CI
 
 on:
   push:
-    branches: [ master, staging, philippemnoel/unit-tests ]
+    branches: [ master, staging ]
   pull_request:
-    branches: [ master, staging, philippemnoel/unit-tests ]
+    branches: [ master, staging ]
 
 jobs:
   build:
