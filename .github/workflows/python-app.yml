@@ -22,17 +22,17 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install black pytest
+        pip install black pytest python-dotenv
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run Flask App
       run: |
-        set FLASK_APP=server.py
+        export FLASK_APP=server.py
         flask run
     - name: Unit tests with pytest
       run: |
         pytest tests/logger-tests.py
-        pytest tests/sql-tests.py
-        pytest tests/vms-tests.py
-        pytest tests/monitor-tests.py
+      # pytest tests/sql-tests.py
+      # pytest tests/vms-tests.py
+      # pytest tests/monitor-tests.py
     - name: Format with Python Black
       run: black .

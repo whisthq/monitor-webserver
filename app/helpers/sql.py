@@ -1,5 +1,4 @@
-from app.imports import *
-from app.logger import *
+from app import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
