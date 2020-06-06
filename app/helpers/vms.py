@@ -18,6 +18,7 @@ RCLIENT = ResourceManagementClient(credentials, subscription_id)
 CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
+
 def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
     """Starts a vm
 
@@ -68,7 +69,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
                 createTemporaryLock(vm_name, 12)
 
-                sendInfo( async_vm_start.result(timeout = 180))
+                sendInfo(async_vm_start.result(timeout=180))
 
                 if s:
                     s.update_state(
@@ -76,7 +77,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                         meta={"msg": "Your cloud PC was started successfully."},
                     )
 
-                sendInfo( "VM {} started successfully".format(vm_name))
+                sendInfo("VM {} started successfully".format(vm_name))
 
             if needs_restart:
                 sendInfo(
@@ -100,7 +101,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 createTemporaryLock(vm_name, 12)
 
                 sendInfo(async_vm_restart.result())
-                sendInfo( "VM {} restarted successfully".format(vm_name))
+                sendInfo("VM {} restarted successfully".format(vm_name))
 
         def checkFirstTime(disk_name):
             session = Session()
@@ -197,6 +198,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
         sendCritical(str(e))
         return -1
 
+
 def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
     """Bullies Azure into actually starting the vm by repeatedly calling sendVMStartCommand if necessary (big brain thoughts from Ming)
 
@@ -207,9 +209,7 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
     Returns:
         int: 1 for success, -1 for failure
     """
-    sendInfo(
-        "Begin repeatedly calling sendVMStartCommand for vm {}".format(vm_name)
-    )
+    sendInfo("Begin repeatedly calling sendVMStartCommand for vm {}".format(vm_name))
 
     started = False
     start_attempts = 0
@@ -277,6 +277,7 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
         start_attempts += 1
 
     return -1
+
 
 def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Windows"):
     """Adds a vm entry to the SQL database
@@ -354,7 +355,6 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Wind
             }
 
 
-
 def createVM(vm_size, location, operating_system):
     """Creates a windows vm of size vm_size in Azure region location
 
@@ -382,7 +382,7 @@ def createVM(vm_size, location, operating_system):
     async_vm_creation = CCLIENT.virtual_machines.create_or_update(
         os.environ["VM_GROUP"], vmParameters["vm_name"], vmParameters["params"]
     )
-    sendDebug( "Waiting on async_vm_creation")
+    sendDebug("Waiting on async_vm_creation")
     async_vm_creation.wait()
 
     time.sleep(10)
@@ -426,7 +426,7 @@ def createVM(vm_size, location, operating_system):
         extension_parameters,
     )
 
-    sendDebug( "Waiting on async_vm_extension")
+    sendDebug("Waiting on async_vm_extension")
     async_vm_extension.wait()
 
     vm = getVM(vmParameters["vm_name"])
@@ -436,9 +436,10 @@ def createVM(vm_size, location, operating_system):
     updateVMLocation(vmParameters["vm_name"], location)
     updateVMOS(vmParameters["vm_name"], operating_system)
 
-    sendInfo( "SUCCESS: VM {} created and updated".format(vmName))
+    sendInfo("SUCCESS: VM {} created and updated".format(vmName))
 
     return fetchVMCredentials(vmParameters["vm_name"])
+
 
 def getIP(vm):
     """Gets the IP address for a vm
@@ -564,6 +565,7 @@ def lockVMAndUpdate(
     session.commit()
     session.close()
 
+
 def genHaiku(n):
     """Generates an array of haiku names (no more than 15 characters) using haikunator
 
@@ -594,6 +596,7 @@ def genVMName():
         while vmName in oldVMs:
             vmName = genHaiku(1)[0]
         return vmName
+
 
 def createNic(name, location, tries):
     """Creates a network id
