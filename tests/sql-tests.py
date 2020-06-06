@@ -1,13 +1,26 @@
-from app.logger import *
+from app.helpers.sql import (
+    cleanFetchedSQL,
+    reportError,
+    fetchAllVms,
+    getVM,
+    updateVMState,
+    getMostRecentActivity,
+    lockVM,
+    fetchAllDisks,
+    deleteDiskFromTable,
+    deleteVmFromTable,
+    getVMLocationState,
+    addReportTable,
+    getLogons
+)
 
-def test_sendDebug():
-    assert sendDebug("TEST LOG", papertrail=False) == "TEST LOG"
-    
-def test_sendInfo():
-    assert sendInfo("TEST LOG", papertrail=False) == "TEST LOG"
 
-def test_sendError():
-    assert sendError("TEST LOG", papertrail=False) == "TEST LOG"
 
-def test_sendCritical():
-    assert sendCritical("TEST LOG", papertrail=False) == "TEST LOG"
+
+
+
+
+
+def test_getLogons():
+    assert(isinstance( getLogons('06-01-2020, 11:11:11', 'logon'), int))
+    assert(isinstance( getLogons('06-01-2020, 11:11:11', 'logoff'), int))
