@@ -1,6 +1,6 @@
 # Fractal Monitor Webserver
 
-![Python App CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20App%20CI/badge.svg)
+![Python WebApp CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20App%20CI/badge.svg)
 
 This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the heroku CLI.
 
@@ -10,9 +10,11 @@ Heroku Dashboard: https://dashboard.heroku.com/apps/fractal-monitor-server
 
 ## Development
 
-Here are the main setups to run this webserver on Heroku. If developing mainly in Heroku, you should make sure to commit your latest code to GitHub, since this is where our development happens. We have basic continuous integration set via GitHub Actions. For every push or PR to master, the commit will be built and formatted via Python Black, see below. You should always make sure that your code passes the tests in the Actions tab.
+### Local Setup (Windows/MacOS)
 
 Since the monitor-webserver runs independently from any other services, and that it already has access to the SQL databases, we currently do not do testing on local machines. If the time comes where we have testing sql tables, the monitor webserver will be changed to accomodate local testing.
+
+Here are the main setups to run this webserver on Heroku. If developing mainly in Heroku, you should make sure to commit your latest code to GitHub, since this is where our development happens. We have basic continuous integration set via GitHub Actions. For every push or PR to master, the commit will be built and formatted via Python Black, see below. You should always make sure that your code passes the tests in the Actions tab.
 
 ### Run on Heroku
 
@@ -74,4 +76,4 @@ To get started right away with sensible defaults:
 black {source_file_or_directory}
 ```
 
-Black doesn't provide many options. You can list them by running `black --help`:
+To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`:
