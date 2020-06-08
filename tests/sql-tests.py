@@ -59,7 +59,6 @@ def test_deleteVmFromTable():
 def test_getVMLocationState():
     assert isinstance(getVMLocationState("eastus", "RUNNING_AVAILABLE"), list)
     assert isinstance(getVMLocationState("northcentralus", "RUNNING_AVAILABLE"), list)
-    assert isinstance(getVMLocationState("southcentralus", "RUNNING_AVAILABLE"), list)
 
 
 def test_addReportTable():
