@@ -22,7 +22,7 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 # Threshold for min number of available VMs per region and OS
 REGION_THRESHOLD = {"Windows": 1, "Linux": 0}
 # The regions we care about
-REGIONS = ["eastus", "northcentralus", "southcentralus", "westus2"]
+REGIONS = ["eastus", "northcentralus", "southcentralus"]
 # The operating systems we care about
 VM_OS = ["Windows", "Linux"]
 
@@ -108,7 +108,7 @@ def monitorVMs():
                         if vm["lock"]:
                             shutdown = False
 
-                        if vm["dev"] and vm["os"] != "Linux":
+                        if vm["dev"]:
                             shutdown = False
 
                         if vm["state"].endswith("ING"):
@@ -337,50 +337,45 @@ def reportThread():
         timesDeallocated = 0
         time.sleep(60 * 60)
 
-        timestamp = datetime.utcnow().strftime("%m-%d-%Y, %H:%M:%S")
+        timestamp = int(time.time())
         vmByRegion = {
-            "eastus": 0,
-            "southcentralus": 0,
-            "northcentralus": 0,
+            "eastus": {"available": 0, "unavailable": 0, "deallocated": 0},
+            "southcentralus": {"available": 0, "unavailable": 0, "deallocated": 0},
+            "northcentralus": {"available": 0, "unavailable": 0, "deallocated": 0},
         }
         users = {
             "eastus": 0,
             "southcentralus": 0,
             "northcentralus": 0,
         }
+        liveUsers = 0
         oneHourAgo = (datetime.utcnow() - timedelta(hours=1)).strftime(
             "%m-%d-%Y, %H:%M:%S"
         )
         logons = getLogons(oneHourAgo, "logon")["count"]
         logoffs = getLogons(oneHourAgo, "logoff")["count"]
-        deallocatedVms = 0
         vms = fetchAllVms()
         for vm in vms:
-            if "NOT_RUNNING" in vm["state"]:
-                deallocatedVms += 1
-
-            if vm["location"] == "eastus":
-                vmByRegion["eastus"] += 1
+            if vm["location"] in REGIONS:
+                if "DEALLOCATED" in vm["state"]:
+                    vmByRegion[vm["location"]]["deallocated"] += 1
+                elif "RUNNING_AVAILABLE" in vm["state"]:
+                    vmByRegion[vm["location"]]["available"] += 1
+                elif "RUNNING_UNAVAILABLE" in vm["state"]:
+                    vmByRegion[vm["location"]]["unavailable"] += 1
+                    liveUsers += 1
                 if vm["username"]:
-                    users["eastus"] += 1
-            elif vm["location"] == "southcentralus":
-                vmByRegion["southcentralus"] += 1
-                if vm["username"]:
-                    users["southcentralus"] += 1
-            elif vm["location"] == "northcentralus":
-                vmByRegion["northcentralus"] += 1
-                if vm["username"]:
-                    users["northcentralus"] += 1
+                    users[vm["location"]] += 1
 
         try:
             addReportTable(
                 timestamp,
-                deallocatedVms,
                 timesDeallocated,
                 logons,
                 logoffs,
                 vmByRegion,
                 users,
+                liveUsers,
             )
             sendInfo("Generated hourly report")
         except:

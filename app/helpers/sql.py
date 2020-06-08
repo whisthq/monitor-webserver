@@ -113,7 +113,7 @@ def updateVMState(vm_name, state):
         vm_name (str): Name of the vm to update
         state (str): The new state of the vm
     """
-    sendInfo("Automatically updating state for VM " + vm_name + " to " + state)
+    sendInfo("Updating state for VM " + vm_name + " to " + state)
     command = text(
         """
         UPDATE v_ms
@@ -123,6 +123,28 @@ def updateVMState(vm_name, state):
         """
     )
     params = {"vm_name": vm_name, "state": state}
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
+
+
+def updateDiskState(disk_name, state):
+    """Updates the state of a disk in the disks sql table
+
+    Args:
+        disk_name (str): Name of the disk to update
+        state (str): The new state of the disk
+    """
+    sendInfo("Updating state for disk " + disk_name + " to " + state)
+    command = text(
+        """
+        UPDATE disks
+        SET state = :state
+        WHERE
+        "disk_name" = :disk_name
+        """
+    )
+    params = {"state": state, "disk_name": disk_name}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -278,36 +300,43 @@ def getVMLocationState(location, state, operatingSys=None):
         return vms
 
 
-def addReportTable(ts, deallocVm, totalDealloc, logons, logoffs, vms, users):
+def addReportTable(ts, totalDealloc, logons, logoffs, vms, users, liveUsers):
     """Counts statistics of the whole Fractal system
     
     Args:
         ts (str): The datetime formatted as mm-dd-yyyy, hh:mm:ss in 24h format
-        deallocVm (int): Current number of deallocated VMs
         totalDealloc (int): Total number of deallocs since timestamp
         logons (int): Total number of logons since timestamp
         logoffs (int): Total number of logoffs since timestamp
         vms (int): Total number of VMs across the whole system
         users (int): Total number of users across the whole system
+        liveUsers (int): Total number of users currently logged on
     """
+
     command = text(
         """
-        INSERT INTO status_report("timestamp", "deallocated_vms", "total_vms_deallocated", "logons", "logoffs", "number_users_eastus", "number_vms_eastus", "number_users_southcentralus", "number_vms_southcentralus", "number_users_northcentralus", "number_vms_northcentralus") 
-        VALUES(:timestamp, :deallocated_vms, :total_vms_deallocated, :logons, :logoffs, :number_users_eastus, :number_vms_eastus, :number_users_southcentralus, :number_vms_southcentralus, :number_users_northcentralus, :number_vms_northcentralus)
+        INSERT INTO status_report("timestamp", "total_vms_deallocated", "logons", "logoffs", "users_online", "number_users_eastus", "number_users_southcentralus", "number_users_northcentralus", "eastus_available", "eastus_unavailable", "eastus_deallocated", "northcentralus_available", "northcentralus_unavailable", "northcentralus_deallocated", "southcentralus_available", "southcentralus_unavailable", "southcentralus_deallocated") 
+        VALUES(:timestamp, :total_vms_deallocated, :logons, :logoffs, :users_online, :number_users_eastus, :number_users_southcentralus, :number_users_northcentralus, :eastus_available, :eastus_unavailable, :eastus_deallocated, :northcentralus_available, :northcentralus_unavailable, :northcentralus_deallocated, :southcentralus_available, :southcentralus_unavailable, :southcentralus_deallocated)
         """
     )
     params = {
         "timestamp": ts,
-        "deallocated_vms": deallocVm,
         "total_vms_deallocated": totalDealloc,
         "logons": logons,
         "logoffs": logoffs,
+        "users_online": liveUsers,
         "number_users_eastus": users["eastus"],
-        "number_vms_eastus": vms["eastus"],
         "number_users_southcentralus": users["southcentralus"],
-        "number_vms_southcentralus": vms["southcentralus"],
         "number_users_northcentralus": users["northcentralus"],
-        "number_vms_northcentralus": vms["northcentralus"],
+        "eastus_available": vms["eastus"]["available"],
+        "eastus_unavailable": vms["eastus"]["unavailable"],
+        "eastus_deallocated": vms["eastus"]["deallocated"],
+        "northcentralus_available": vms["northcentralus"]["available"],
+        "northcentralus_unavailable": vms["northcentralus"]["unavailable"],
+        "northcentralus_deallocated": vms["northcentralus"]["deallocated"],
+        "southcentralus_available": vms["southcentralus"]["available"],
+        "southcentralus_unavailable": vms["southcentralus"]["unavailable"],
+        "southcentralus_deallocated": vms["southcentralus"]["deallocated"],
     }
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
