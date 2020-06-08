@@ -33,7 +33,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
     try:
 
-        def boot_if_necessary(vm_name, needs_restart, ID, s=s):
+        def boot_if_necessary(vm_name, needs_restart):
             power_state = "PowerState/deallocated"
             vm_state = CCLIENT.virtual_machines.instance_view(
                 resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name
@@ -71,12 +71,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
                 sendInfo(async_vm_start.result(timeout=180))
 
-                if s:
-                    s.update_state(
-                        state="PENDING",
-                        meta={"msg": "Your cloud PC was started successfully."},
-                    )
-
                 sendInfo("VM {} started successfully".format(vm_name))
 
             if needs_restart:
@@ -104,7 +98,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 sendInfo("VM {} restarted successfully".format(vm_name))
 
         def checkFirstTime(disk_name):
-            session = Session()
             command = text(
                 """
                 SELECT * FROM disks WHERE "disk_name" = :disk_name
@@ -112,20 +105,16 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
             )
             params = {"disk_name": disk_name}
 
-            disk_info = cleanFetchedSQL(session.execute(command, params).fetchone())
+            with ENGINE.connect() as conn:
+                disk_info = cleanFetchedSQL(conn.execute(command, **params).fetchone())
+                conn.close()
 
             if disk_info:
-                session.commit()
-                session.close()
                 return disk_info["first_time"]
-
-            session.commit()
-            session.close()
 
             return False
 
         def changeFirstTime(disk_name, first_time=False):
-            session = Session()
             command = text(
                 """
                 UPDATE disks SET "first_time" = :first_time WHERE "disk_name" = :disk_name
@@ -133,9 +122,9 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
             )
             params = {"disk_name": disk_name, "first_time": first_time}
 
-            session.execute(command, params)
-            session.commit()
-            session.close()
+            with ENGINE.connect() as conn:
+                conn.execute(command, **params)
+                conn.close()
 
         disk_name = fetchVMCredentials(vm_name)["disk_name"]
         first_time = checkFirstTime(disk_name)
@@ -166,15 +155,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 change_last_updated=True,
                 verbose=False,
             )
-
-            if s:
-                s.update_state(
-                    state="PENDING",
-                    meta={
-                        "msg": "Logging you into your cloud PC. This should take less than two minutes."
-                    },
-                )
-
             winlogon = waitForWinlogon(vm_name)
             while winlogon < 0:
                 boot_if_necessary(vm_name, True)
@@ -217,14 +197,6 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
     # We will try to start/restart the VM and wait for it three times in total before giving up
     while not started and start_attempts < 3:
         start_command_tries = 0
-
-        # First, send a basic start or restart command. Try six times, if it fails, give up
-        if s:
-            s.update_state(
-                state="PENDING",
-                meta={"msg": "Cloud PC successfully received boot request."},
-            )
-
         while (
             sendVMStartCommand(vm_name, needs_restart, needs_winlogon) < 0
             and start_command_tries < 6
@@ -438,6 +410,11 @@ def createVM(vm_size, location, operating_system):
 
     sendInfo("SUCCESS: VM {} created and updated".format(vmName))
 
+    vmObj = CCLIENT.virtual_machines.get(os.environ["VM_GROUP"], vmParameters["vm_name"])
+    disk_name = vmObj.properties.storageProfile.osDisk.name
+    updateDiskState(disk_name, "TO_BE_DELETED")
+    sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
+
     return fetchVMCredentials(vmParameters["vm_name"])
 
 
@@ -507,6 +484,27 @@ def updateVMLocation(vm_name, location):
         conn.close()
 
 
+def updateVMOS(vm_name, operating_system):
+    """Updates the OS of the vm entry in the v_ms sql table
+    Args:
+        vm_name (str): Name of vm of interest
+        operating_system (str): The OSof the vm
+    """
+    sendInfo("Updating OS for VM {} to {} in SQL".format(vm_name, operating_system))
+    command = text(
+        """
+        UPDATE v_ms
+        SET os = :operating_system
+        WHERE
+        "vm_name" = :vm_name
+        """
+    )
+    params = {"vm_name": vm_name, "operating_system": operating_system}
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
+
+
 def fetchVMCredentials(vm_name):
     """Fetches a vm from the v_ms sql table
 
@@ -529,12 +527,8 @@ def fetchVMCredentials(vm_name):
         return vm_info
 
 
-def lockVMAndUpdate(
-    vm_name, state, lock, temporary_lock, change_last_updated, verbose, ID=-1
-):
+def lockVMAndUpdate(vm_name, state, lock, temporary_lock, change_last_updated, verbose):
     MAX_LOCK_TIME = 10
-
-    session = Session()
 
     command = text(
         """
@@ -561,9 +555,9 @@ def lockVMAndUpdate(
         "temporary_lock": temporary_lock,
     }
 
-    session.execute(command, params)
-    session.commit()
-    session.close()
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
 
 
 def genHaiku(n):
