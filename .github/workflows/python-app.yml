@@ -1,17 +1,16 @@
-# This workflow will install Python dependencies, run tests and format with Python Black, all on Python 3.6
+# This workflow will install Python dependencies, run unit tests and format with Python Black, all on Python 3.6
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python App CI
+name: Python WebApp CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, staging ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, staging ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -23,11 +22,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install black pytest
+        pip install black pytest python-dotenv
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Unit tests with pytest
+      run: |
+        pytest tests/logger-tests.py
+        pytest tests/sql-tests.py
+        pytest tests/vms-tests.py
+        pytest tests/monitor-tests.py
     - name: Format with Python Black
       run: black .
-    # TODO: write unit tests
-    # - name: Test with pytest
-    #   run: |
-    #     pytest

@@ -1,5 +1,4 @@
-from app.imports import *
-from app.logger import *
+from app import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -40,7 +39,7 @@ def reportError(service):
     """"Logs an error message with datetime, service name, and traceback in log.txt file. Also send an error log to papertrail
 
     Args:
-        service (str): The name of the service in which the erorr occured
+        service (str): The name of the service in which the error occured
     """
     error = traceback.format_exc()
     errorTime = datetime.utcnow().strftime("%m-%d-%Y, %H:%M:%S")
@@ -158,7 +157,7 @@ def getMostRecentActivity(username):
         username (str): Username of the user
 
     Returns:
-        str: The latest activity of the user
+        dict: The latest activity of the user
     """
     command = text(
         """
@@ -302,6 +301,18 @@ def getVMLocationState(location, state, operatingSys=None):
 
 
 def addReportTable(ts, totalDealloc, logons, logoffs, vms, users, liveUsers):
+    """Counts statistics of the whole Fractal system
+    
+    Args:
+        ts (str): The datetime formatted as mm-dd-yyyy, hh:mm:ss in 24h format
+        totalDealloc (int): Total number of deallocs since timestamp
+        logons (int): Total number of logons since timestamp
+        logoffs (int): Total number of logoffs since timestamp
+        vms (int): Total number of VMs across the whole system
+        users (int): Total number of users across the whole system
+        liveUsers (int): Total number of users currently logged on
+    """
+
     command = text(
         """
         INSERT INTO status_report("timestamp", "total_vms_deallocated", "logons", "logoffs", "users_online", "number_users_eastus", "number_users_southcentralus", "number_users_northcentralus", "eastus_available", "eastus_unavailable", "eastus_deallocated", "northcentralus_available", "northcentralus_unavailable", "northcentralus_deallocated", "southcentralus_available", "southcentralus_unavailable", "southcentralus_deallocated") 

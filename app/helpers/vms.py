@@ -494,7 +494,7 @@ def getIP(vm):
     """Gets the IP address for a vm
 
     Args:
-        vm (str): The name of the vm
+        vm (vm object name): The name of the VM to find the IP of
 
     Returns:
         str: The ipv4 address
