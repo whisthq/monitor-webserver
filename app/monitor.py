@@ -95,7 +95,7 @@ def monitorVMs():
                         if not vm["last_updated"]:
                             shutdown = True
                         else:
-                            lastActive = datetime.strptime(
+                            lastActive = datetime.datetime.strptime(
                                 vm["last_updated"], "%m/%d/%Y, %H:%M"
                             )
                             now = datetime.datetime.now(datetime.timezone.utc)
@@ -208,7 +208,7 @@ def monitorDisks():
                         if not dbDisk["delete_date"]:
                             delete = True
                         else:
-                            expiryTime = datetime.strptime(
+                            expiryTime = datetime.datetime.strptime(
                                 dbDisk["delete_date"], "%m/%d/%Y, %H:%M"
                             )
                             now = datetime.datetime.now(datetime.timezone.utc)
