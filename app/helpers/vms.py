@@ -19,6 +19,76 @@ CCLIENT = ComputeManagementClient(credentials, subscription_id)
 NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
 
+def checkDev(vm_name):
+    """Checks to see if a vm is in dev mode
+
+    Args:
+        vm_name (str): Name of vm to check
+
+    Returns:
+        bool: True if vm is in dev mode, False otherwise
+    """
+    command = text(
+        """
+        SELECT * FROM v_ms WHERE "vm_name" = :vm_name
+        """
+    )
+    params = {"vm_name": vm_name}
+
+    with ENGINE.connect() as conn:
+        vm = cleanFetchedSQL(conn.execute(command, **params).fetchone())
+        conn.close()
+        if vm:
+            return vm["dev"]
+        return None
+
+
+def waitForWinlogon(vm_name):
+    """Periodically checks and sleeps until winlogon succeeds
+
+    Args:
+        vm_name (str): Name of the vm
+        ID (int, optional): Unique papertrail logging id. Defaults to -1.
+
+    Returns:
+        int: 1 for success, -1 for fail
+    """
+    ready = checkWinlogon(vm_name)
+
+    num_tries = 0
+
+    if ready:
+        sendInfo("VM {} has Winlogoned successfully".format(vm_name))
+        return 1
+
+    if checkDev(vm_name):
+        sendInfo(
+            "VM {} is a DEV machine. Bypassing Winlogon. Sleeping for 50 seconds before returning.".format(
+                vm_name
+            ),
+        )
+        time.sleep(50)
+        return 1
+
+    while not ready:
+        sendWarning("Waiting for VM {} to Winlogon".format(vm_name))
+        time.sleep(5)
+        ready = checkWinlogon(vm_name)
+        num_tries += 1
+
+        if num_tries > 30:
+            sendError("Waited too long for winlogon. Sending failure message.")
+            return -1
+
+    sendInfo(
+        "VM {} has Winlogon successfully after {} tries".format(
+            vm_name, str(num_tries)
+        ),
+    )
+
+    return 1
+
+
 def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
     """Starts a vm
 
@@ -410,7 +480,9 @@ def createVM(vm_size, location, operating_system):
 
     sendInfo("SUCCESS: VM {} created and updated".format(vmName))
 
-    vmObj = CCLIENT.virtual_machines.get(os.environ["VM_GROUP"], vmParameters["vm_name"])
+    vmObj = CCLIENT.virtual_machines.get(
+        os.environ["VM_GROUP"], vmParameters["vm_name"]
+    )
     disk_name = vmObj.properties.storageProfile.osDisk.name
     updateDiskState(disk_name, "TO_BE_DELETED")
     sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
