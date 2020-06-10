@@ -317,7 +317,7 @@ def manageRegions():
                                 + " with os "
                                 + operatingSystem
                             )
-                            createVM("standard_NC6_promo", location, operatingSystem)
+                            createVM("standard_NV6_promo", location, operatingSystem)
                 except:
                     reportError("Region monitor error for region " + location)
 
