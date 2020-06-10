@@ -98,7 +98,7 @@ def monitorVMs():
                             lastActive = datetime.strptime(
                                 vm["last_updated"], "%m/%d/%Y, %H:%M"
                             )
-                            now = datetime.now(timezone.utc)
+                            now = datetime.now()
                             if (
                                 timedelta(minutes=30) <= now - lastActive
                                 and vm["state"] == "RUNNING_AVAILABLE"
@@ -211,7 +211,7 @@ def monitorDisks():
                             expiryTime = datetime.strptime(
                                 dbDisk["delete_date"], "%m/%d/%Y, %H:%M"
                             )
-                            now = datetime.now(timezone.utc)
+                            now = datetime.now()
                             if now > expiryTime:
                                 delete = True
 
@@ -349,7 +349,7 @@ def reportThread():
             "northcentralus": 0,
         }
         liveUsers = 0
-        oneHourAgo = (datetime.now(timezone.utc) - timedelta(hours=1)).strftime(
+        oneHourAgo = (datetime.now() - timedelta(hours=1)).strftime(
             "%m-%d-%Y, %H:%M:%S"
         )
         logons = getLogons(oneHourAgo, "logon")["count"]
