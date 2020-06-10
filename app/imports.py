@@ -1,7 +1,7 @@
 import time
 import threading
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime as dt, timedelta
 import os, sys
 import sqlalchemy
 from sqlalchemy.sql import text

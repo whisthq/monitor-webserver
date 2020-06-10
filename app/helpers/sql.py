@@ -42,7 +42,7 @@ def reportError(service):
         service (str): The name of the service in which the error occured
     """
     error = traceback.format_exc()
-    errorTime = datetime.now(datetime.timezone.utc).strftime("%m-%d-%Y, %H:%M:%S")
+    errorTime = dt.now(datetime.timezone.utc).strftime("%m-%d-%Y, %H:%M:%S")
     msg = "ERROR for " + service + ": " + error
 
     # Log error in log.txt
@@ -196,7 +196,7 @@ def lockVM(vm_name, lock):
            "vm_name" = :vm_name
         """
     )
-    last_updated = datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y, %H:%M")
+    last_updated = dt.now(datetime.timezone.utc).strftime("%m/%d/%Y, %H:%M")
     params = {"vm_name": vm_name, "lock": lock, "last_updated": last_updated}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
@@ -267,7 +267,7 @@ def getVMLocationState(location, state, operatingSys=None):
         array: An array of all vms that satisfy the query
     """
 
-    nowTime = datetime.now(datetime.timezone.utc).timestamp()
+    nowTime = dt.now(datetime.timezone.utc).timestamp()
 
     if operatingSys:
         command = text(
