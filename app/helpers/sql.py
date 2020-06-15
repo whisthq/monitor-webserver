@@ -1,5 +1,6 @@
 from app.imports import *
 from app.logger import *
+from app.utils import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -84,10 +85,6 @@ def vmReadyToConnect(vm_name, ready):
         session.execute(command, params)
         session.commit()
         session.close()
-
-
-def dateToUnix(date):
-    return round(date.timestamp())
 
 
 def reportError(service):

@@ -1,6 +1,7 @@
 from app.imports import *
 from app.logger import *
 from app.helpers.sql import *
+from app.utils import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -87,11 +88,6 @@ def waitForWinlogon(vm_name):
     )
 
     return 1
-
-
-def dateToUnix(date):
-    return round(date.timestamp())
-
 
 def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
     """Starts a vm
