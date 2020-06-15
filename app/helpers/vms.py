@@ -1,6 +1,6 @@
 from app.imports import *
 from app.logger import *
-from .sql import *
+from app.helpers.sql import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -320,6 +320,21 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
 
     return -1
 
+
+def getVM(vm_name):
+    """Fetches a vm object from Azure sdk
+
+    Args:
+        vm_name (str): Name of the vm to look for
+
+    Returns:
+        VirtualMachine: The virtual machine object (https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/get#virtualmachine)
+    """
+    try:
+        virtual_machine = CCLIENT.virtual_machines.get(os.getenv("VM_GROUP"), vm_name)
+        return virtual_machine
+    except:
+        return None
 
 def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Windows"):
     """Adds a vm entry to the SQL database
