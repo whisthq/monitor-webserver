@@ -595,13 +595,13 @@ def createVM(vm_size, location, operating_system):
     updateVMOS(vmParameters["vm_name"], operating_system)
 
     sendInfo("SUCCESS: VM {} created and updated".format(vmName))
-
-    vmObj = CCLIENT.virtual_machines.get(
-        os.environ["VM_GROUP"], vmParameters["vm_name"]
-    )
-    disk_name = vmObj.properties.storageProfile.osDisk.name
-    updateDiskState(disk_name, "TO_BE_DELETED")
-    sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
+    # TODO
+    # vmObj = CCLIENT.virtual_machines.get(
+    #     os.environ["VM_GROUP"], vmParameters["vm_name"]
+    # )
+    # disk_name = vmObj.properties.storageProfile.osDisk.name
+    # updateDiskState(disk_name, "TO_BE_DELETED")
+    # sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
 
     return fetchVMCredentials(vmParameters["vm_name"])
 
