@@ -7,6 +7,7 @@ from app.utils import *
 ENGINE = sqlalchemy.create_engine(
     os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True
 )
+Session = sessionmaker(bind=ENGINE, autocommit=False)
 
 # Get Azure clients
 subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
@@ -206,7 +207,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
             return 1
 
         def checkFirstTime(disk_name):
-            session = Session()
             command = text(
                 """
                 SELECT * FROM disks WHERE "disk_name" = :disk_name
@@ -214,20 +214,15 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
             )
             params = {"disk_name": disk_name}
 
-            disk_info = cleanFetchedSQL(session.execute(command, params).fetchone())
-
+            with ENGINE.connect() as conn:
+                disk_info = cleanFetchedSQL(conn.execute(command, **params).fetchone())
+                conn.close()
             if disk_info:
-                session.commit()
-                session.close()
                 return disk_info["first_time"]
-
-            session.commit()
-            session.close()
 
             return False
 
         def changeFirstTime(disk_name, first_time=False):
-            session = Session()
             command = text(
                 """
                 UPDATE disks SET "first_time" = :first_time WHERE "disk_name" = :disk_name
@@ -235,9 +230,9 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
             )
             params = {"disk_name": disk_name, "first_time": first_time}
 
-            session.execute(command, params)
-            session.commit()
-            session.close()
+            with ENGINE.connect() as conn:
+                conn.execute(command, **params)
+                conn.close()
 
         if s:
             s.update_state(
