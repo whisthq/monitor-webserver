@@ -89,7 +89,7 @@ def monitorVMs():
                     # Automatically deallocate VMs on standby
                     if "running" in vm_state.statuses[1].code:
                         shutdown = False
-                        if not vm["username"]:
+                        if not vm["username"] or not vm["state"]:
                             shutdown = True
 
                         if not vm["last_updated"]:
@@ -111,7 +111,7 @@ def monitorVMs():
                         if vm["dev"]:
                             shutdown = False
 
-                        if vm["state"].endswith("ING"):
+                        if vm["state"] is not None and vm["state"].endswith("ING"):
                             shutdown = False
 
                         if (
