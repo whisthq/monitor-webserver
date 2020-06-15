@@ -86,6 +86,10 @@ def vmReadyToConnect(vm_name, ready):
         session.close()
 
 
+def dateToUnix(date):
+    return round(date.timestamp())
+
+
 def reportError(service):
     """"Logs an error message with datetime, service name, and traceback in log.txt file. Also send an error log to papertrail
 
