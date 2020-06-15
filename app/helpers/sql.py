@@ -61,6 +61,37 @@ def checkWinlogon(vm_name):
         return None
 
 
+def createTemporaryLock(vm_name, minutes):
+    """Sets the temporary lock field for a vm
+
+    Args:
+        vm_name (str): The name of the vm to temporarily lock
+        minutes (int): Minutes to lock for
+        ID (int, optional): Papertrail logging ID. Defaults to -1.
+    """
+
+    temporary_lock = shiftUnixByMinutes(dateToUnix(getToday()), minutes)
+
+    command = text(
+        """
+        UPDATE v_ms
+        SET "temporary_lock" = :temporary_lock
+        WHERE
+        "vm_name" = :vm_name
+        """
+    )
+
+    params = {"vm_name": vm_name, "temporary_lock": temporary_lock}
+
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
+
+    sendInfo(
+        "Temporary lock created for VM {} for {} minutes".format(vm_name, str(minutes)),
+    )
+
+
 def vmReadyToConnect(vm_name, ready):
     """Sets the vm's ready_to_connect field
 
@@ -70,7 +101,6 @@ def vmReadyToConnect(vm_name, ready):
     """
     if ready:
         current = dateToUnix(getToday())
-        session = Session()
 
         command = text(
             """
@@ -82,9 +112,9 @@ def vmReadyToConnect(vm_name, ready):
         )
         params = {"vm_name": vm_name, "current": current}
 
-        session.execute(command, params)
-        session.commit()
-        session.close()
+        with ENGINE.connect() as conn:
+            conn.execute(command, **params)
+            conn.close()
 
 
 def reportError(service):
