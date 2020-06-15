@@ -36,6 +36,56 @@ def cleanFetchedSQL(out):
     return None
 
 
+def checkWinlogon(vm_name):
+    """Checks if a vm is ready to connect
+
+    Args:
+        vm_name (str): Name of the vm to check
+
+    Returns:
+        bool: True if vm is ready to connect
+    """
+    command = text(
+        """
+        SELECT * FROM v_ms WHERE "vm_name" = :vm_name
+        """
+    )
+    params = {"vm_name": vm_name}
+
+    with engine.connect() as conn:
+        vm = cleanFetchedSQL(conn.execute(command, **params).fetchone())
+        conn.close()
+        if vm:
+            return dateToUnix(getToday()) - vm["ready_to_connect"] < 10
+        return None
+
+
+def vmReadyToConnect(vm_name, ready):
+    """Sets the vm's ready_to_connect field
+
+    Args:
+        vm_name (str): Name of the vm
+        ready (boolean): True for ready to connect
+    """
+    if ready:
+        current = dateToUnix(getToday())
+        session = Session()
+
+        command = text(
+            """
+            UPDATE v_ms
+            SET "ready_to_connect" = :current
+            WHERE
+            "vm_name" = :vm_name
+            """
+        )
+        params = {"vm_name": vm_name, "current": current}
+
+        session.execute(command, params)
+        session.commit()
+        session.close()
+
+
 def reportError(service):
     """"Logs an error message with datetime, service name, and traceback in log.txt file. Also send an error log to papertrail
 
@@ -89,6 +139,7 @@ def fetchAllVms():
         vms_info = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
         return vms_info
+
 
 def updateVMState(vm_name, state):
     """Updates the state column of the vm in the v_ms sql table
