@@ -46,6 +46,18 @@ def sendInfo(log, papertrail=True):
     print(log)
 
 
+def sendWarning(log, papertrail=True):
+    """Logs warning messages
+
+    Args:
+        log (str): The message
+        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+    """
+    if papertrail:
+        logger.warning(log)
+    print(log)
+
+
 def sendError(log, papertrail=True):
     """Logs errors
 
