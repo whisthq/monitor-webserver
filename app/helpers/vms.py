@@ -89,6 +89,10 @@ def waitForWinlogon(vm_name):
     return 1
 
 
+def dateToUnix(date):
+    return round(date.timestamp())
+
+
 def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
     """Starts a vm
 
@@ -335,6 +339,7 @@ def getVM(vm_name):
         return virtual_machine
     except:
         return None
+
 
 def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Windows"):
     """Adds a vm entry to the SQL database
