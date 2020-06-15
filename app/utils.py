@@ -9,6 +9,11 @@ def getToday():
     aware = datetime.now()
     return aware
 
+
 def shiftUnixByMinutes(utc, num_minutes):
     date = unixToDate(utc)
     return round(dateToUnix(date + relativedelta(minutes=num_minutes)))
+
+
+def unixToDate(utc):
+    return datetime.fromtimestamp(utc)
