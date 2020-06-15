@@ -106,7 +106,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
     try:
 
-        def boot_if_necessary(vm_name, needs_restart, ID, s=s):
+        def boot_if_necessary(vm_name, needs_restart, ID=-1, s=s):
 
             power_state = "PowerState/deallocated"
             vm_state = CCLIENT.virtual_machines.instance_view(
