@@ -52,7 +52,7 @@ def checkWinlogon(vm_name):
     )
     params = {"vm_name": vm_name}
 
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         vm = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         conn.close()
         if vm:
