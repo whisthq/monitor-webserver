@@ -1,6 +1,6 @@
-from .imports import *
-from .helpers.sql import *
-from .helpers.vms import *
+from app.imports import *
+from app.helpers.sql import *
+from app.helpers.vms import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -89,7 +89,7 @@ def monitorVMs():
                     # Automatically deallocate VMs on standby
                     if "running" in vm_state.statuses[1].code:
                         shutdown = False
-                        if not vm["username"]:
+                        if not vm["username"] or not vm["state"]:
                             shutdown = True
 
                         if not vm["last_updated"]:
@@ -98,7 +98,7 @@ def monitorVMs():
                             lastActive = datetime.strptime(
                                 vm["last_updated"], "%m/%d/%Y, %H:%M"
                             )
-                            now = datetime.utcnow()
+                            now = datetime.now()
                             if (
                                 timedelta(minutes=30) <= now - lastActive
                                 and vm["state"] == "RUNNING_AVAILABLE"
@@ -111,7 +111,7 @@ def monitorVMs():
                         if vm["dev"]:
                             shutdown = False
 
-                        if vm["state"].endswith("ING"):
+                        if vm["state"] is not None and vm["state"].endswith("ING"):
                             shutdown = False
 
                         if (
@@ -211,7 +211,7 @@ def monitorDisks():
                             expiryTime = datetime.strptime(
                                 dbDisk["delete_date"], "%m/%d/%Y, %H:%M"
                             )
-                            now = datetime.utcnow()
+                            now = datetime.now()
                             if now > expiryTime:
                                 delete = True
 
@@ -317,7 +317,7 @@ def manageRegions():
                                 + " with os "
                                 + operatingSystem
                             )
-                            createVM("standard_NC6_promo", location, operatingSystem)
+                            createVM("standard_NV6_promo", location, operatingSystem)
                 except:
                     reportError("Region monitor error for region " + location)
 
@@ -349,7 +349,7 @@ def reportThread():
             "northcentralus": 0,
         }
         liveUsers = 0
-        oneHourAgo = (datetime.utcnow() - timedelta(hours=1)).strftime(
+        oneHourAgo = (datetime.now() - timedelta(hours=1)).strftime(
             "%m-%d-%Y, %H:%M:%S"
         )
         logons = getLogons(oneHourAgo, "logon")["count"]

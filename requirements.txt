@@ -10,3 +10,4 @@ haikunator
 numpy
 SQLAlchemy
 Flask
+python-dotenv

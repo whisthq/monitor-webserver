@@ -1,4 +1,6 @@
-from app import *
+from app.imports import *
+from app.logger import *
+from app.utils import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -35,6 +37,86 @@ def cleanFetchedSQL(out):
     return None
 
 
+def checkWinlogon(vm_name):
+    """Checks if a vm is ready to connect
+
+    Args:
+        vm_name (str): Name of the vm to check
+
+    Returns:
+        bool: True if vm is ready to connect
+    """
+    command = text(
+        """
+        SELECT * FROM v_ms WHERE "vm_name" = :vm_name
+        """
+    )
+    params = {"vm_name": vm_name}
+
+    with ENGINE.connect() as conn:
+        vm = cleanFetchedSQL(conn.execute(command, **params).fetchone())
+        conn.close()
+        if vm:
+            return dateToUnix(getToday()) - vm["ready_to_connect"] < 10
+        return None
+
+
+def createTemporaryLock(vm_name, minutes):
+    """Sets the temporary lock field for a vm
+
+    Args:
+        vm_name (str): The name of the vm to temporarily lock
+        minutes (int): Minutes to lock for
+        ID (int, optional): Papertrail logging ID. Defaults to -1.
+    """
+
+    temporary_lock = shiftUnixByMinutes(dateToUnix(getToday()), minutes)
+
+    command = text(
+        """
+        UPDATE v_ms
+        SET "temporary_lock" = :temporary_lock
+        WHERE
+        "vm_name" = :vm_name
+        """
+    )
+
+    params = {"vm_name": vm_name, "temporary_lock": temporary_lock}
+
+    with ENGINE.connect() as conn:
+        conn.execute(command, **params)
+        conn.close()
+
+    sendInfo(
+        "Temporary lock created for VM {} for {} minutes".format(vm_name, str(minutes)),
+    )
+
+
+def vmReadyToConnect(vm_name, ready):
+    """Sets the vm's ready_to_connect field
+
+    Args:
+        vm_name (str): Name of the vm
+        ready (boolean): True for ready to connect
+    """
+    if ready:
+        current = dateToUnix(getToday())
+
+        command = text(
+            """
+            UPDATE v_ms
+            SET "ready_to_connect" = :current
+            WHERE
+            "vm_name" = :vm_name
+            """
+        )
+        params = {"vm_name": vm_name, "current": current}
+
+        with ENGINE.connect() as conn:
+            conn.execute(command, **params)
+            conn.close()
+
+
 def reportError(service):
     """"Logs an error message with datetime, service name, and traceback in log.txt file. Also send an error log to papertrail
 
@@ -42,7 +124,7 @@ def reportError(service):
         service (str): The name of the service in which the error occured
     """
     error = traceback.format_exc()
-    errorTime = datetime.utcnow().strftime("%m-%d-%Y, %H:%M:%S")
+    errorTime = datetime.now().strftime("%m-%d-%Y, %H:%M:%S")
     msg = "ERROR for " + service + ": " + error
 
     # Log error in log.txt
@@ -52,24 +134,6 @@ def reportError(service):
 
     # Send log to Papertrail
     sendError(msg)
-
-    # Send error email to logs@fractalcomputers.com
-    # title = 'Error in monitoring service: [' + service + ']'
-    # message = error + "\n Occured at " + errorTime
-    # internal_message = SendGridMail(
-    #     from_email='jonathan@fractalcomputers.com',
-    #     to_emails=['logs@fractalcomputers.com'],
-    #     subject=title,
-    #     html_content=message
-    # )
-    # try:
-    #     sg = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
-    #     response = sg.send(internal_message)
-    # except:
-    #     file = open("log.txt", "a")
-    #     file.write(datetime.utcnow().strftime('%m-%d-%Y, %H:%M:%S') +
-    #                " ERROR while reporting error: " + traceback.format_exc())
-    #     file.close()
 
 
 def fetchAllVms():
@@ -88,22 +152,6 @@ def fetchAllVms():
         vms_info = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
         return vms_info
-
-
-def getVM(vm_name):
-    """Fetches a vm object from Azure sdk
-
-    Args:
-        vm_name (str): Name of the vm to look for
-
-    Returns:
-        VirtualMachine: The virtual machine object (https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/get#virtualmachine)
-    """
-    try:
-        virtual_machine = CCLIENT.virtual_machines.get(os.getenv("VM_GROUP"), vm_name)
-        return virtual_machine
-    except:
-        return None
 
 
 def updateVMState(vm_name, state):
@@ -196,7 +244,7 @@ def lockVM(vm_name, lock):
            "vm_name" = :vm_name
         """
     )
-    last_updated = datetime.utcnow().strftime("%m/%d/%Y, %H:%M")
+    last_updated = datetime.now().strftime("%m/%d/%Y, %H:%M")
     params = {"vm_name": vm_name, "lock": lock, "last_updated": last_updated}
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
@@ -267,7 +315,7 @@ def getVMLocationState(location, state, operatingSys=None):
         array: An array of all vms that satisfy the query
     """
 
-    nowTime = datetime.utcnow().timestamp()
+    nowTime = datetime.now().timestamp()
 
     if operatingSys:
         command = text(

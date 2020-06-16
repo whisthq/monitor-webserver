@@ -18,7 +18,7 @@ formatter = logging.Formatter(format, datefmt="%b %d %H:%M:%S")
 syslog.setFormatter(formatter)
 
 logger = logging.getLogger()
-logger.addHandler(syslog)
+# logger.addHandler(syslog)
 logger.setLevel(logging.INFO)
 
 
@@ -43,6 +43,18 @@ def sendInfo(log, papertrail=True):
     """
     if papertrail:
         logger.info(log)
+    print(log)
+
+
+def sendWarning(log, papertrail=True):
+    """Logs warning messages
+
+    Args:
+        log (str): The message
+        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+    """
+    if papertrail:
+        logger.warning(log)
     print(log)
 
 
