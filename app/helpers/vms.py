@@ -598,7 +598,7 @@ def createVM(vm_size, location, operating_system):
     vmObj = CCLIENT.virtual_machines.get(
         os.environ["VM_GROUP"], vmParameters["vm_name"]
     )
-    disk_name = vmObj.storageProfile.osDisk.name
+    disk_name = vmObj.storage_profile.os_disk.name
     updateDiskState(disk_name, "TO_BE_DELETED")
     sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
 
