@@ -2,7 +2,6 @@ from app.helpers.sql import (
     cleanFetchedSQL,
     reportError,
     fetchAllVms,
-    getVM,
     updateVMState,
     getMostRecentActivity,
     lockVM,
