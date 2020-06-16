@@ -2,7 +2,6 @@ from app.helpers.sql import (
     cleanFetchedSQL,
     reportError,
     fetchAllVms,
-    # getVM,
     updateVMState,
     getMostRecentActivity,
     lockVM,
@@ -26,11 +25,6 @@ def test_reportError():
 
 def test_fetchAllVms():
     assert isinstance(fetchAllVms(), list)
-
-
-# def test_getVM():
-#     assert getVM("dev-nv6") != None
-#     assert getVM("this-vm-doesnt-exist") == None
 
 
 def test_updateVMState():
