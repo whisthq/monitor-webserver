@@ -311,20 +311,27 @@ def manageRegions():
                     reportError("Region monitor error for region " + location)
 
 
+def nightToggle():
+    """Shuts off dev vms and region management between times EST 1am -> 7am
+    """
+    if 5 <= datetime.utcnow().hour <= 11:
+        if not TEST_SHUTOFF:
+            sendInfo("Shutting off dev vms and region management for night time")
+            for system in REGION_THRESHOLD:
+                REGION_THRESHOLD[system] = 0
+            vms = fetchDevVms()
+            for vm in vms:
+                deallocVm(vm["vm_name"])
+            TEST_SHUTOFF = True
+    elif TEST_SHUTOFF:
+        sendInfo("Resuming region management")
+        REGION_THRESHOLD["Windows"] = 1
+        TEST_SHUTOFF = False
+
+
 def monitorThread():
     while True:
-        print(fetchDevVms())
-        if 5 <= datetime.utcnow().hour <= 11:
-            if not TEST_SHUTOFF:
-                for system in REGION_THRESHOLD:
-                    REGION_THRESHOLD[system] = 0
-                # deallocVm(vm["vm_name"])
-                TEST_SHUTOFF = True
-
-        else:
-            REGION_THRESHOLD["Windows"] = 1
-            TEST_SHUTOFF = False
-
+        nightToggle()
         monitorVMs()
         manageRegions()
         # monitorLogins()
