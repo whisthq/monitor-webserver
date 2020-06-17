@@ -30,7 +30,7 @@ VM_OS = ["Windows", "Linux"]
 timesDeallocated = 0
 
 # Nightime shutoff
-nightTimeMode = False
+TEST_SHUTOFF = False
 
 # Deallocates any VM that has been running for over 30 minutes while user has been logged off
 def monitorVMs():
@@ -324,7 +324,18 @@ def manageRegions():
 
 def monitorThread():
     while True:
-        print(datetime.utcnow().hour)
+        print(fetchDevVms())
+        if 5 <= datetime.utcnow().hour <= 11:
+            if not TEST_SHUTOFF:
+                for system in REGION_THRESHOLD:
+                    REGION_THRESHOLD[system] = 0
+
+                TEST_SHUTOFF = True
+
+        else:
+            REGION_THRESHOLD["Windows"] = 1
+            TEST_SHUTOFF = False
+
         monitorVMs()
         manageRegions()
         # monitorLogins()
