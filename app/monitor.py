@@ -29,10 +29,10 @@ VM_OS = ["Windows", "Linux"]
 # Report variables
 timesDeallocated = 0
 
+# Nightime shutoff
+nightTimeMode = False
 
 # Deallocates any VM that has been running for over 30 minutes while user has been logged off
-
-
 def monitorVMs():
     sendDebug("Monitoring VMs...")
 
@@ -324,6 +324,7 @@ def manageRegions():
 
 def monitorThread():
     while True:
+        print(datetime.now().hour)
         monitorVMs()
         manageRegions()
         # monitorLogins()
