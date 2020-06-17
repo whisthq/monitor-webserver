@@ -53,7 +53,7 @@ def fetchDevVms():
     """
     command = text(
         """
-        SELECT vm_name FROM v_ms
+        SELECT * FROM v_ms
         WHERE dev = true
         """
     )
@@ -368,6 +368,24 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
     except Exception as e:
         sendCritical(str(e))
         return -1
+
+
+def deallocVm(vm_name):
+    """Deallocates a vm
+
+    Args:
+        vm_name (str): Name of vm
+    """
+    sendInfo("Automatically deallocating VM " + vm_name + "...")
+    async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
+        os.getenv("VM_GROUP"), vm_name
+    )
+
+    lockVM(vm_name, True)
+    updateVMState(vm_name, "DEALLOCATING")
+    async_vm_deallocate.wait()
+    updateVMState(vm_name, "DEALLOCATED")
+    lockVM(vm_name, False)
 
 
 def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=False):

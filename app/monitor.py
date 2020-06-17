@@ -122,18 +122,7 @@ def monitorVMs():
                             shutdown = False
 
                         if shutdown:
-                            sendInfo(
-                                "Automatically deallocating VM " + vm["vm_name"] + "..."
-                            )
-                            async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-                                os.getenv("VM_GROUP"), vm["vm_name"]
-                            )
-
-                            lockVM(vm["vm_name"], True)
-                            updateVMState(vm["vm_name"], "DEALLOCATING")
-                            async_vm_deallocate.wait()
-                            updateVMState(vm["vm_name"], "DEALLOCATED")
-                            lockVM(vm["vm_name"], False)
+                            deallocVm(vm["vm_name"])
                             timesDeallocated += 1
 
         except:
@@ -329,7 +318,7 @@ def monitorThread():
             if not TEST_SHUTOFF:
                 for system in REGION_THRESHOLD:
                     REGION_THRESHOLD[system] = 0
-
+                # deallocVm(vm["vm_name"])
                 TEST_SHUTOFF = True
 
         else:
