@@ -41,9 +41,7 @@ Once you are ready to deploy to production, you can merge your code into master 
 
 To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode, Sublime Text and running it from the CLI.
 
-### Python Black
-
-#### [VSCode](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)
+### [VSCode](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)
 
 1. Install it on your virtual env or in your local python with the command:
 
@@ -62,9 +60,7 @@ ext install ms-python.python
 5. Search for “python formatting provider” and select “black”.
 6. Now open/create a python file, write some code and save(Ctrl+s) it to see the magic happen!
 
-#### [Sublime](https://github.com/jgirardet/sublack)
-
-#### [CLI](https://github.com/psf/black)
+### [CLI](https://github.com/psf/black)
 
 Installation:  
 Black can be installed by running `pip install black`. It requires Python 3.6.0+ to run but you can reformat Python 2 code with it, too.
