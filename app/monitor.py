@@ -324,7 +324,7 @@ def manageRegions():
 
 def monitorThread():
     while True:
-        print(datetime.now().hour)
+        print(datetime.utcnow().hour)
         monitorVMs()
         manageRegions()
         # monitorLogins()
