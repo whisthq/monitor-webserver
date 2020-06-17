@@ -44,28 +44,6 @@ def checkDev(vm_name):
             return vm["dev"]
         return None
 
-
-def fetchDevVms():
-    """Returns a list of all vm names that are under dev
-
-    Returns:
-        Arr[obj]: An array of the vm names
-    """
-    command = text(
-        """
-        SELECT * FROM v_ms
-        WHERE dev = true
-        """
-    )
-    params = {}
-
-    with ENGINE.connect() as conn:
-        vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
-        conn.close()
-
-        return None
-
-
 def waitForWinlogon(vm_name):
     """Periodically checks and sleeps until winlogon succeeds
 

@@ -154,6 +154,27 @@ def fetchAllVms():
         return vms_info
 
 
+def fetchDevVms():
+    """Returns a list of all vm names that are under dev
+
+    Returns:
+        Arr[obj]: An array of the vm names
+    """
+    command = text(
+        """
+        SELECT vm_name FROM v_ms
+        WHERE dev = true
+        """
+    )
+    params = {}
+
+    with ENGINE.connect() as conn:
+        vms = cleanFetchedSQL(conn.execute(command, **params).fetchall())
+        conn.close()
+        return vms
+    return None
+
+
 def updateVMState(vm_name, state):
     """Updates the state column of the vm in the v_ms sql table
 
