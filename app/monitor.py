@@ -314,6 +314,8 @@ def manageRegions():
 def nightToggle():
     """Shuts off dev vms and region management between times EST 1am -> 7am
     """
+    global TEST_SHUTOFF
+
     if 5 <= datetime.utcnow().hour <= 11:
         if not TEST_SHUTOFF:
             sendInfo("Shutting off dev vms and region management for night time")
