@@ -44,6 +44,7 @@ def checkDev(vm_name):
             return vm["dev"]
         return None
 
+
 def waitForWinlogon(vm_name):
     """Periodically checks and sleeps until winlogon succeeds
 
@@ -494,11 +495,17 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Wind
 
         command = text(
             """
-            INSERT INTO v_ms("vm_name", "disk_name")
-            VALUES(:vmName, :disk_name)
+            INSERT INTO v_ms("vm_name", "disk_name", "state", "lock")
+            VALUES(:vmName, :disk_name, :state, :lock)
             """
         )
-        params = {"vmName": vmName, "username": userName, "disk_name": None}
+        params = {
+            "vmName": vmName,
+            "username": userName,
+            "disk_name": None,
+            "state": "CREATING",
+            "lock": True,
+        }
         with ENGINE.connect() as conn:
             conn.execute(command, **params)
             conn.close()
@@ -572,10 +579,6 @@ def createVM(vm_size, location, operating_system):
 
     sendInfo("The VM created is called {}".format(vmParameters["vm_name"]))
 
-    fractalVMStart(vmParameters["vm_name"], needs_winlogon=False)
-
-    time.sleep(30)
-
     extension_parameters = (
         {
             "location": location,
@@ -618,6 +621,15 @@ def createVM(vm_size, location, operating_system):
     disk_name = vmObj.storage_profile.os_disk.name
     updateDiskState(disk_name, "TO_BE_DELETED")
     sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
+
+    lockVMAndUpdate(
+        vmName,
+        "RUNNING_AVAILABLE",
+        False,
+        temporary_lock=0,
+        change_last_updated=True,
+        verbose=False,
+    )
 
     return fetchVMCredentials(vmParameters["vm_name"])
 
