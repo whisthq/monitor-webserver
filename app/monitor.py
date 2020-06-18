@@ -1,6 +1,6 @@
-from imports import *
-from helpers.sql import *
-from helpers.vms import *
+from app.imports import *
+from app.helpers.sql import *
+from app.helpers.vms import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -29,10 +29,10 @@ VM_OS = ["Windows", "Linux"]
 # Report variables
 timesDeallocated = 0
 
+# Nightime shutoff
+TEST_SHUTOFF = False
 
 # Deallocates any VM that has been running for over 30 minutes while user has been logged off
-
-
 def monitorVMs():
     sendDebug("Monitoring VMs...")
 
@@ -89,7 +89,7 @@ def monitorVMs():
                     # Automatically deallocate VMs on standby
                     if "running" in vm_state.statuses[1].code:
                         shutdown = False
-                        if not vm["username"]:
+                        if not vm["username"] or not vm["state"]:
                             shutdown = True
 
                         if not vm["last_updated"]:
@@ -98,7 +98,7 @@ def monitorVMs():
                             lastActive = datetime.strptime(
                                 vm["last_updated"], "%m/%d/%Y, %H:%M"
                             )
-                            now = datetime.utcnow()
+                            now = datetime.now()
                             if (
                                 timedelta(minutes=30) <= now - lastActive
                                 and vm["state"] == "RUNNING_AVAILABLE"
@@ -111,7 +111,7 @@ def monitorVMs():
                         if vm["dev"]:
                             shutdown = False
 
-                        if vm["state"].endswith("ING"):
+                        if vm["state"] is not None and vm["state"].endswith("ING"):
                             shutdown = False
 
                         if (
@@ -122,18 +122,7 @@ def monitorVMs():
                             shutdown = False
 
                         if shutdown:
-                            sendInfo(
-                                "Automatically deallocating VM " + vm["vm_name"] + "..."
-                            )
-                            async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-                                os.getenv("VM_GROUP"), vm["vm_name"]
-                            )
-
-                            lockVM(vm["vm_name"], True)
-                            updateVMState(vm["vm_name"], "DEALLOCATING")
-                            async_vm_deallocate.wait()
-                            updateVMState(vm["vm_name"], "DEALLOCATED")
-                            lockVM(vm["vm_name"], False)
+                            deallocVm(vm["vm_name"])
                             timesDeallocated += 1
 
         except:
@@ -211,7 +200,7 @@ def monitorDisks():
                             expiryTime = datetime.strptime(
                                 dbDisk["delete_date"], "%m/%d/%Y, %H:%M"
                             )
-                            now = datetime.utcnow()
+                            now = datetime.now()
                             if now > expiryTime:
                                 delete = True
 
@@ -322,8 +311,29 @@ def manageRegions():
                     reportError("Region monitor error for region " + location)
 
 
+def nightToggle():
+    """Shuts off dev vms and region management between times EST 1am -> 7am
+    """
+    global TEST_SHUTOFF
+
+    if 5 <= datetime.utcnow().hour <= 11:
+        if not TEST_SHUTOFF:
+            sendInfo("Shutting off dev vms and region management for night time")
+            for system in REGION_THRESHOLD:
+                REGION_THRESHOLD[system] = 0
+            vms = fetchDevVms()
+            for vm in vms:
+                deallocVm(vm["vm_name"])
+            TEST_SHUTOFF = True
+    elif TEST_SHUTOFF:
+        sendInfo("Resuming region management")
+        REGION_THRESHOLD["Windows"] = 1
+        TEST_SHUTOFF = False
+
+
 def monitorThread():
     while True:
+        nightToggle()
         monitorVMs()
         manageRegions()
         # monitorLogins()
@@ -349,7 +359,7 @@ def reportThread():
             "northcentralus": 0,
         }
         liveUsers = 0
-        oneHourAgo = (datetime.utcnow() - timedelta(hours=1)).strftime(
+        oneHourAgo = (datetime.now() - timedelta(hours=1)).strftime(
             "%m-%d-%Y, %H:%M:%S"
         )
         logons = getLogons(oneHourAgo, "logon")["count"]

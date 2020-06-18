@@ -1,11 +1,13 @@
 from app.imports import *
 from app.logger import *
-from .sql import *
+from app.helpers.sql import *
+from app.utils import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
     os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True
 )
+Session = sessionmaker(bind=ENGINE, autocommit=False)
 
 # Get Azure clients
 subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
@@ -41,7 +43,6 @@ def checkDev(vm_name):
         if vm:
             return vm["dev"]
         return None
-
 
 def waitForWinlogon(vm_name):
     """Periodically checks and sleeps until winlogon succeeds
@@ -89,12 +90,13 @@ def waitForWinlogon(vm_name):
     return 1
 
 
-def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
+def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
     """Starts a vm
 
     Args:
         vm_name (str): The name of the vm to start
         needs_restart (bool): Whether the vm needs to restart after
+        ID (int, optional): Unique papertrail logging id. Defaults to -1.
 
     Returns:
         int: 1 for success, -1 for fail
@@ -103,7 +105,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
     try:
 
-        def boot_if_necessary(vm_name, needs_restart):
+        def boot_if_necessary(vm_name, needs_restart, ID=-1, s=s):
+
             power_state = "PowerState/deallocated"
             vm_state = CCLIENT.virtual_machines.instance_view(
                 resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name
@@ -116,6 +119,14 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 pass
 
             if "stop" in power_state or "dealloc" in power_state:
+                if s:
+                    s.update_state(
+                        state="PENDING",
+                        meta={
+                            "msg": "Your cloud PC is powered off. Powering on (this could take a few minutes)."
+                        },
+                    )
+
                 sendInfo(
                     "VM {} currently in state {}. Setting Winlogon to False".format(
                         vm_name, power_state
@@ -141,9 +152,25 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
 
                 sendInfo(async_vm_start.result(timeout=180))
 
+                if s:
+                    s.update_state(
+                        state="PENDING",
+                        meta={"msg": "Your cloud PC was started successfully."},
+                    )
+
                 sendInfo("VM {} started successfully".format(vm_name))
 
+                return 1
+
             if needs_restart:
+                if s:
+                    s.update_state(
+                        state="PENDING",
+                        meta={
+                            "msg": "Your cloud PC needs to be restarted. Restarting (this will take no more than a minute)."
+                        },
+                    )
+
                 sendInfo(
                     "VM {} needs to restart. Setting Winlogon to False".format(vm_name),
                 )
@@ -165,7 +192,18 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 createTemporaryLock(vm_name, 12)
 
                 sendInfo(async_vm_restart.result())
+
+                if s:
+                    s.update_state(
+                        state="PENDING",
+                        meta={"msg": "Your cloud PC was restarted successfully."},
+                    )
+
                 sendInfo("VM {} restarted successfully".format(vm_name))
+
+                return 1
+
+            return 1
 
         def checkFirstTime(disk_name):
             command = text(
@@ -178,7 +216,6 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
             with ENGINE.connect() as conn:
                 disk_info = cleanFetchedSQL(conn.execute(command, **params).fetchone())
                 conn.close()
-
             if disk_info:
                 return disk_info["first_time"]
 
@@ -196,6 +233,12 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 conn.execute(command, **params)
                 conn.close()
 
+        if s:
+            s.update_state(
+                state="PENDING",
+                meta={"msg": "Cloud PC started executing boot request."},
+            )
+
         disk_name = fetchVMCredentials(vm_name)["disk_name"]
         first_time = checkFirstTime(disk_name)
         num_boots = 1 if not first_time else 2
@@ -204,6 +247,15 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
             print("First time! Going to boot {} times".format(str(num_boots)))
 
         for i in range(0, num_boots):
+            if i == 1 and s:
+                s.update_state(
+                    state="PENDING",
+                    meta={
+                        "msg": "Since this is your first time logging on, we're running a few extra tests to ensure stability. Please allow a few extra minutes."
+                    },
+                )
+                time.sleep(60)
+
             lockVMAndUpdate(
                 vm_name,
                 "ATTACHING",
@@ -216,7 +268,14 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
             if i == 1:
                 needs_restart = True
 
+            if s:
+                s.update_state(
+                    state="PENDING",
+                    meta={"msg": "Cloud PC still executing boot request."},
+                )
+
             boot_if_necessary(vm_name, needs_restart)
+
             lockVMAndUpdate(
                 vm_name,
                 "RUNNING_AVAILABLE",
@@ -225,13 +284,53 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
                 change_last_updated=True,
                 verbose=False,
             )
-            winlogon = waitForWinlogon(vm_name)
-            while winlogon < 0:
-                boot_if_necessary(vm_name, True)
+
+            if s:
+                s.update_state(
+                    state="PENDING",
+                    meta={
+                        "msg": "Logging you into your cloud PC. This should take less than two minutes."
+                    },
+                )
+
+            if needs_winlogon:
                 winlogon = waitForWinlogon(vm_name)
+                while winlogon < 0:
+                    boot_if_necessary(vm_name, True)
+                    if s:
+                        s.update_state(
+                            state="PENDING",
+                            meta={
+                                "msg": "Logging you into your cloud PC. This should take less than two minutes."
+                            },
+                        )
+                    winlogon = waitForWinlogon(vm_name)
+
+                if s:
+                    s.update_state(
+                        state="PENDING",
+                        meta={"msg": "Logged into your cloud PC successfully."},
+                    )
+
+                lockVMAndUpdate(
+                    vm_name,
+                    "RUNNING_AVAILABLE",
+                    False,
+                    temporary_lock=1,
+                    change_last_updated=True,
+                    verbose=False,
+                )
 
             if i == 1:
                 changeFirstTime(disk_name)
+
+                if s:
+                    s.update_state(
+                        state="PENDING",
+                        meta={
+                            "msg": "Running final performance checks. This will take two minutes."
+                        },
+                    )
                 time.sleep(60)
 
                 lockVMAndUpdate(
@@ -249,7 +348,25 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon):
         return -1
 
 
-def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
+def deallocVm(vm_name):
+    """Deallocates a vm
+
+    Args:
+        vm_name (str): Name of vm
+    """
+    sendInfo("Automatically deallocating VM " + vm_name + "...")
+    async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
+        os.getenv("VM_GROUP"), vm_name
+    )
+
+    lockVM(vm_name, True)
+    updateVMState(vm_name, "DEALLOCATING")
+    async_vm_deallocate.wait()
+    updateVMState(vm_name, "DEALLOCATED")
+    lockVM(vm_name, False)
+
+
+def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=False):
     """Bullies Azure into actually starting the vm by repeatedly calling sendVMStartCommand if necessary (big brain thoughts from Ming)
 
     Args:
@@ -319,6 +436,22 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=True):
         start_attempts += 1
 
     return -1
+
+
+def getVM(vm_name):
+    """Fetches a vm object from Azure sdk
+
+    Args:
+        vm_name (str): Name of the vm to look for
+
+    Returns:
+        VirtualMachine: The virtual machine object (https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/get#virtualmachine)
+    """
+    try:
+        virtual_machine = CCLIENT.virtual_machines.get(os.getenv("VM_GROUP"), vm_name)
+        return virtual_machine
+    except:
+        return None
 
 
 def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Windows"):
@@ -479,11 +612,10 @@ def createVM(vm_size, location, operating_system):
     updateVMOS(vmParameters["vm_name"], operating_system)
 
     sendInfo("SUCCESS: VM {} created and updated".format(vmName))
-
     vmObj = CCLIENT.virtual_machines.get(
         os.environ["VM_GROUP"], vmParameters["vm_name"]
     )
-    disk_name = vmObj.properties.storageProfile.osDisk.name
+    disk_name = vmObj.storage_profile.os_disk.name
     updateDiskState(disk_name, "TO_BE_DELETED")
     sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
 
