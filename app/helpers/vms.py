@@ -44,6 +44,7 @@ def checkDev(vm_name):
             return vm["dev"]
         return None
 
+
 def waitForWinlogon(vm_name):
     """Periodically checks and sleeps until winlogon succeeds
 
