@@ -59,7 +59,7 @@ def monitorVMs(devEnv):
     vms = fetchAllVms()
 
     azureVms = []
-    for azureVm in CCLIENT.virtual_machines.list_all():
+    for azureVm in CCLIENT.virtual_machines.list(resource_group_name=azureGroup):
         azureVms.append(azureVm.name)
 
     for vm in vms:
