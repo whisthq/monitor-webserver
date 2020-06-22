@@ -349,13 +349,16 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
         return -1
 
 
-def deallocVm(vm_name):
+def deallocVm(vm_name, devEnv="prod"):
     """Deallocates a vm
 
     Args:
         vm_name (str): Name of vm
     """
     sendInfo("Automatically deallocating VM " + vm_name + "...")
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv=="staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+
     async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
         os.getenv("VM_GROUP"), vm_name
     )
@@ -537,7 +540,7 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Wind
             }
 
 
-def createVM(vm_size, location, operating_system):
+def createVM(vm_size, location, operating_system, devEnv="prod"):
     """Creates a windows vm of size vm_size in Azure region location
 
 	Args:
@@ -547,6 +550,7 @@ def createVM(vm_size, location, operating_system):
 	Returns:
 		dict: The dict representing the vm in the v_ms sql table
 	"""
+    # TODO: Add support for create vm for staging db
     sendInfo(
         "Creating VM of size {}, location {}, operating system {}".format(
             vm_size, location, operating_system
