@@ -128,7 +128,7 @@ def monitorVMs(devEnv):
                         if (
                             vm["location"] in freeVmsByRegion
                             and freeVmsByRegion[vm["location"]]
-                            <= REGION_THRESHOLD[vm[devEnv]["os"]]
+                            <= REGION_THRESHOLD[devEnv][vm["os"]]
                         ):
                             shutdown = False
 
