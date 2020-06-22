@@ -168,7 +168,11 @@ def monitorDisks(devEnv):
             if dbDisk["disk_name"] not in azureDisks:
                 deleteDiskFromTable(dbDisk["disk_name"], devEnv)
                 sendInfo(
-                    "Deleted nonexistent disk " + dbDisk["disk_name"] + " from database"
+                    "Deleted nonexistent disk "
+                    + dbDisk["disk_name"]
+                    + " from "
+                    + devEnv
+                    + " database"
                 )
             else:
                 delete = False
