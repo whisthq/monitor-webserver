@@ -134,7 +134,8 @@ def monitorVMs(devEnv):
 
                         if shutdown:
                             deallocVm(vm["vm_name"], devEnv)
-                            timesDeallocated += 1
+                            if devEnv == "prod":
+                                timesDeallocated += 1
 
         except:
             reportError("VM monitor for VM " + vm["vm_name"])
@@ -174,7 +175,7 @@ def monitorDisks(devEnv):
                     + devEnv
                     + " database"
                 )
-            else:
+            else if not dbDisk["disk_name"].startsWith("crimsonbonus543"):
                 delete = False
                 if dbDisk["state"] == "TO_BE_DELETED":
                     os_disk = CCLIENT.disks.get(azureGroup, dbDisk["disk_name"])
