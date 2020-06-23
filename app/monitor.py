@@ -98,7 +98,7 @@ def monitorVMs(devEnv):
                             updateVMState(vm["vm_name"], "DEALLOCATING", devEnv)
 
                 # Automatically deallocate VMs on standby
-                print("For vm " + vm["v_name"])
+                print("For vm " + vm["vm_name"])
                 if "running" in vm_state.statuses[1].code:
                     shutdown = False
                     if not vm["username"] or not vm["state"]:
