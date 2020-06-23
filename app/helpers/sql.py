@@ -396,7 +396,6 @@ def getVMLocationState(location, state, operatingSys=None, devEnv="prod"):
         if devEnv == "staging"
         else os.getenv("DATABASE_URL")
     )
-    print(dbUrl)
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
 
     nowTime = datetime.now().timestamp()
