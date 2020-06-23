@@ -21,8 +21,8 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
 # Threshold for min number of available VMs per region and OS
 REGION_THRESHOLD = {
-    "staging": {"Windows": 1, "Linux": 0},
-    "prod": {"Windows": 0, "Linux": 0},
+    "staging": {"Windows": 0, "Linux": 0},
+    "prod": {"Windows": 1, "Linux": 0},
 }
 # The regions we care about
 REGIONS = ["eastus", "northcentralus", "southcentralus"]
@@ -97,45 +97,45 @@ def monitorVMs(devEnv):
                         if vm["state"] != "DEALLOCATING":
                             updateVMState(vm["vm_name"], "DEALLOCATING", devEnv)
 
-                    # Automatically deallocate VMs on standby
-                    if "running" in vm_state.statuses[1].code:
-                        shutdown = False
-                        if not vm["username"] or not vm["state"]:
-                            shutdown = True
+                # Automatically deallocate VMs on standby
+                if "running" in vm_state.statuses[1].code:
+                    shutdown = False
+                    if not vm["username"] or not vm["state"]:
+                        shutdown = True
 
-                        if not vm["last_updated"]:
-                            shutdown = True
-                        else:
-                            lastActive = datetime.strptime(
-                                vm["last_updated"], "%m/%d/%Y, %H:%M"
-                            )
-                            now = datetime.now()
-                            if (
-                                timedelta(minutes=30) <= now - lastActive
-                                and vm["state"] == "RUNNING_AVAILABLE"
-                            ):
-                                shutdown = True
-
-                        if vm["lock"]:
-                            shutdown = False
-
-                        if vm["dev"]:
-                            shutdown = False
-
-                        if vm["state"] is not None and vm["state"].endswith("ING"):
-                            shutdown = False
-
+                    if not vm["last_updated"]:
+                        shutdown = True
+                    else:
+                        lastActive = datetime.strptime(
+                            vm["last_updated"], "%m/%d/%Y, %H:%M"
+                        )
+                        now = datetime.now()
                         if (
-                            vm["location"] in freeVmsByRegion
-                            and freeVmsByRegion[vm["location"]]
-                            <= REGION_THRESHOLD[devEnv][vm["os"]]
+                            timedelta(minutes=30) <= now - lastActive
+                            and vm["state"] == "RUNNING_AVAILABLE"
                         ):
-                            shutdown = False
+                            shutdown = True
 
-                        if shutdown:
-                            deallocVm(vm["vm_name"], devEnv)
-                            if devEnv == "prod":
-                                timesDeallocated += 1
+                    if vm["lock"]:
+                        shutdown = False
+
+                    if vm["dev"]:
+                        shutdown = False
+
+                    if vm["state"] is not None and vm["state"].endswith("ING"):
+                        shutdown = False
+
+                    if (
+                        vm["location"] in freeVmsByRegion
+                        and freeVmsByRegion[vm["location"]]
+                        <= REGION_THRESHOLD[devEnv][vm["os"]]
+                    ):
+                        shutdown = False
+
+                    if shutdown:
+                        deallocVm(vm["vm_name"], devEnv)
+                        if devEnv == "prod":
+                            timesDeallocated += 1
 
         except:
             reportError("VM monitor for VM " + vm["vm_name"])
