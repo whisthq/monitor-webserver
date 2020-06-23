@@ -359,15 +359,18 @@ def deallocVm(vm_name, devEnv="prod"):
     dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv=="staging" else os.getenv("DATABASE_URL")
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
 
+    azureGroup = (
+        os.getenv("STAGING_GROUP") if devEnv == "staging" else os.getenv("VM_GROUP")
+    )
     async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-        os.getenv("VM_GROUP"), vm_name
+        azureGroup, vm_name
     )
 
-    lockVM(vm_name, True)
-    updateVMState(vm_name, "DEALLOCATING")
+    lockVM(vm_name, True, devEnv)
+    updateVMState(vm_name, "DEALLOCATING", devEnv)
     async_vm_deallocate.wait()
-    updateVMState(vm_name, "DEALLOCATED")
-    lockVM(vm_name, False)
+    updateVMState(vm_name, "DEALLOCATED"devEnv)
+    lockVM(vm_name, False, devEnv)
 
 
 def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=False):
