@@ -98,13 +98,16 @@ def monitorVMs(devEnv):
                             updateVMState(vm["vm_name"], "DEALLOCATING", devEnv)
 
                 # Automatically deallocate VMs on standby
+                print("For vm " + vm["v_name"])
                 if "running" in vm_state.statuses[1].code:
                     shutdown = False
                     if not vm["username"] or not vm["state"]:
                         shutdown = True
+                        print("1")
 
                     if not vm["last_updated"]:
                         shutdown = True
+                        print("2")
                     else:
                         lastActive = datetime.strptime(
                             vm["last_updated"], "%m/%d/%Y, %H:%M"
@@ -115,15 +118,19 @@ def monitorVMs(devEnv):
                             and vm["state"] == "RUNNING_AVAILABLE"
                         ):
                             shutdown = True
+                            print("3")
 
                     if vm["lock"]:
                         shutdown = False
+                        print("4")
 
                     if vm["dev"]:
                         shutdown = False
+                        print(5)
 
                     if vm["state"] is not None and vm["state"].endswith("ING"):
                         shutdown = False
+                        print(6)
 
                     if (
                         vm["location"] in freeVmsByRegion
@@ -131,8 +138,10 @@ def monitorVMs(devEnv):
                         <= REGION_THRESHOLD[devEnv][vm["os"]]
                     ):
                         shutdown = False
+                        print(7)
 
                     if shutdown:
+                        print(shutdown)
                         deallocVm(vm["vm_name"], devEnv)
                         if devEnv == "prod":
                             timesDeallocated += 1
@@ -408,6 +417,6 @@ if __name__ == "__main__":
     # Reset log file
     # open("log.txt", "w").close()
 
-    t1.start()
+    # t1.start()
     t2.start()
     t3.start()
