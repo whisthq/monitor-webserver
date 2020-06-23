@@ -57,7 +57,6 @@ def monitorVMs(devEnv):
             freeVmsByRegion[region] = 0
         else:
             freeVmsByRegion[region] = len(regionVms)
-    print(freeVmsByRegion)
 
     vms = fetchAllVms(devEnv)
 
@@ -101,16 +100,13 @@ def monitorVMs(devEnv):
                             updateVMState(vm["vm_name"], "DEALLOCATING", devEnv)
 
                 # Automatically deallocate VMs on standby
-                print("For vm " + vm["vm_name"])
                 if "running" in vm_state.statuses[1].code:
                     shutdown = False
                     if not vm["username"] or not vm["state"]:
                         shutdown = True
-                        print("1")
 
                     if not vm["last_updated"]:
                         shutdown = True
-                        print("2")
                     else:
                         lastActive = datetime.strptime(
                             vm["last_updated"], "%m/%d/%Y, %H:%M"
@@ -121,19 +117,15 @@ def monitorVMs(devEnv):
                             and vm["state"] == "RUNNING_AVAILABLE"
                         ):
                             shutdown = True
-                            print("3")
 
                     if vm["lock"]:
                         shutdown = False
-                        print("4")
 
                     if vm["dev"]:
                         shutdown = False
-                        print(5)
 
                     if vm["state"] is not None and vm["state"].endswith("ING"):
                         shutdown = False
-                        print(6)
 
                     if (
                         vm["location"] in freeVmsByRegion
