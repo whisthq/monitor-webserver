@@ -356,20 +356,22 @@ def deallocVm(vm_name, devEnv="prod"):
         vm_name (str): Name of vm
     """
     sendInfo("Automatically deallocating VM " + vm_name + "...")
-    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv=="staging" else os.getenv("DATABASE_URL")
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
 
     azureGroup = (
         os.getenv("STAGING_GROUP") if devEnv == "staging" else os.getenv("VM_GROUP")
     )
-    async_vm_deallocate = CCLIENT.virtual_machines.deallocate(
-        azureGroup, vm_name
-    )
+    async_vm_deallocate = CCLIENT.virtual_machines.deallocate(azureGroup, vm_name)
 
     lockVM(vm_name, True, devEnv)
     updateVMState(vm_name, "DEALLOCATING", devEnv)
     async_vm_deallocate.wait()
-    updateVMState(vm_name, "DEALLOCATED"devEnv)
+    updateVMState(vm_name, "DEALLOCATED", devEnv)
     lockVM(vm_name, False, devEnv)
 
 
