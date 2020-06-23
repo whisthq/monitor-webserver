@@ -175,7 +175,7 @@ def monitorDisks(devEnv):
                     + devEnv
                     + " database"
                 )
-            else if not dbDisk["disk_name"].startswith("crimsonbonus543"):
+            elif not dbDisk["disk_name"].startswith("crimsonbonus543"):
                 delete = False
                 if dbDisk["state"] == "TO_BE_DELETED":
                     os_disk = CCLIENT.disks.get(azureGroup, dbDisk["disk_name"])
