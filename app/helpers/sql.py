@@ -136,12 +136,20 @@ def reportError(service):
     sendError(msg)
 
 
-def fetchAllVms():
+def fetchAllVms(devEnv="prod"):
     """Fetches all the vms in the v_ms sql table
 
     Returns:
         list: List of all vms
     """
+
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+
     command = text(
         """
             SELECT * FROM v_ms
@@ -189,7 +197,6 @@ def updateVMState(vm_name, state, devEnv="prod"):
         if devEnv == "staging"
         else os.getenv("DATABASE_URL")
     )
-
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
 
     command = text(

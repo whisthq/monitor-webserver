@@ -56,7 +56,7 @@ def monitorVMs(devEnv):
         else:
             freeVmsByRegion[region] = len(regionVms)
 
-    vms = fetchAllVms()
+    vms = fetchAllVms(devEnv)
 
     azureVms = []
     for azureVm in CCLIENT.virtual_machines.list(resource_group_name=azureGroup):
@@ -313,6 +313,7 @@ def manageRegions(devEnv):
 def nightToggle():
     """Shuts off dev vms and region management between times EST 1am -> 7am
     """
+    # TODO: Add support for both dbs
     global TEST_SHUTOFF
 
     if 5 <= datetime.utcnow().hour <= 11:
