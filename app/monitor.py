@@ -55,6 +55,7 @@ def monitorVMs(devEnv):
             freeVmsByRegion[region] = 0
         else:
             freeVmsByRegion[region] = len(regionVms)
+    print(freeVmsByRegion)
 
     vms = fetchAllVms(devEnv)
 
