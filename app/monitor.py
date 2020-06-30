@@ -412,6 +412,6 @@ if __name__ == "__main__":
     # Reset log file
     # open("log.txt", "w").close()
 
-    # t1.start()
+    t1.start()
     t2.start()
     t3.start()
