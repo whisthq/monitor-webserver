@@ -4,8 +4,7 @@
 
 This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the heroku CLI.
 
-Our webserver is hosted on Heroku:
-- [Production](https://fractal-monitor-server.herokuapp.com)
+Our webserver is hosted on Heroku [here](https://fractal-monitor-server.herokuapp.com).
 
 ## Development
 
