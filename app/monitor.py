@@ -314,8 +314,8 @@ def manageRegions(devEnv):
                     reportError("Region monitor error for region " + location)
 
 
-def nightToggle():
-    """Shuts off dev vms and region management between times EST 1am -> 7am
+def nightToggle(devEnv):
+    """Shuts off dev vms and region management between times EST 1am -> 7am in prod db
     """
     # TODO: Add support for both dbs
     global TEST_SHUTOFF
@@ -324,20 +324,20 @@ def nightToggle():
         if not TEST_SHUTOFF:
             sendInfo("Shutting off dev vms and region management for night time")
             for system in REGION_THRESHOLD:
-                REGION_THRESHOLD["prod"][system] = 0
-            vms = fetchDevVms()
+                REGION_THRESHOLD[devEnv][system] = 0
+            vms = fetchDevVms(devEnv)
             for vm in vms:
-                deallocVm(vm["vm_name"])
+                deallocVm(vm["vm_name"], devEnv)
             TEST_SHUTOFF = True
     elif TEST_SHUTOFF:
         sendInfo("Resuming region management")
-        REGION_THRESHOLD["prod"]["Windows"] = 1
+        REGION_THRESHOLD[devEnv]["Windows"] = 1
         TEST_SHUTOFF = False
 
 
 def monitorThread():
     while True:
-        nightToggle()
+        nightToggle("prod")
         monitorVMs("prod")
         manageRegions("prod")
         # monitorLogins()

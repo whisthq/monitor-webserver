@@ -37,7 +37,7 @@ def cleanFetchedSQL(out):
     return None
 
 
-def checkWinlogon(vm_name):
+def checkWinlogon(vm_name, devEnv="prod"):
     """Checks if a vm is ready to connect
 
     Args:
@@ -46,6 +46,14 @@ def checkWinlogon(vm_name):
     Returns:
         bool: True if vm is ready to connect
     """
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+
     command = text(
         """
         SELECT * FROM v_ms WHERE "vm_name" = :vm_name
@@ -61,7 +69,7 @@ def checkWinlogon(vm_name):
         return None
 
 
-def createTemporaryLock(vm_name, minutes):
+def createTemporaryLock(vm_name, minutes, devEnv="prod"):
     """Sets the temporary lock field for a vm
 
     Args:
@@ -69,6 +77,14 @@ def createTemporaryLock(vm_name, minutes):
         minutes (int): Minutes to lock for
         ID (int, optional): Papertrail logging ID. Defaults to -1.
     """
+
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
 
     temporary_lock = shiftUnixByMinutes(dateToUnix(getToday()), minutes)
 
@@ -92,13 +108,21 @@ def createTemporaryLock(vm_name, minutes):
     )
 
 
-def vmReadyToConnect(vm_name, ready):
+def vmReadyToConnect(vm_name, ready, devEnv="prod"):
     """Sets the vm's ready_to_connect field
 
     Args:
         vm_name (str): Name of the vm
         ready (boolean): True for ready to connect
     """
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+
     if ready:
         current = dateToUnix(getToday())
 
@@ -162,12 +186,20 @@ def fetchAllVms(devEnv="prod"):
         return vms_info
 
 
-def fetchDevVms():
+def fetchDevVms(devEnv="prod"):
     """Returns a list of all vm names that are under dev
 
     Returns:
         Arr[obj]: An array of the vm names
     """
+
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    
     command = text(
         """
         SELECT vm_name FROM v_ms
@@ -244,7 +276,7 @@ def updateDiskState(disk_name, state, devEnv="prod"):
         conn.close()
 
 
-def getMostRecentActivity(username):
+def getMostRecentActivity(username, devEnv="prod"):
     """Gets the last activity of a user
 
     Args:
@@ -253,6 +285,14 @@ def getMostRecentActivity(username):
     Returns:
         dict: The latest activity of the user
     """
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    
     command = text(
         """
         SELECT *
