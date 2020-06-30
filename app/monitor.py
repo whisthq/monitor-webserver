@@ -133,7 +133,6 @@ def monitorVMs(devEnv):
                         <= REGION_THRESHOLD[devEnv][vm["os"]]
                     ):
                         shutdown = False
-                        print(7)
 
                     if shutdown:
                         print(shutdown)
