@@ -163,7 +163,7 @@ def monitorDisks(devEnv):
     dbDisks = fetchAllDisks(devEnv)
 
     azureDisks = []
-    disks = CCLIENT.disks.list(resource_group_name=azureGroup)
+    disks = CCLIENT.disks.list_by_resource_group(resource_group_name=azureGroup)
     for disk in disks:
         azureDisks.append(disk.name)
 
