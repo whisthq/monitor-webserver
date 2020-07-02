@@ -370,7 +370,7 @@ def fetchAllDisks(devEnv="prod"):
         return disks
 
 
-def deleteDiskFromTable(disk_name, devEnv="staging"):
+def deleteDiskFromTable(disk_name, devEnv="prod"):
     """Deletes a disk from the disks sql table
 
     Args:
