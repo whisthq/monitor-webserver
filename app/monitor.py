@@ -342,7 +342,6 @@ def monitorThread():
         nightToggle("prod")
         monitorVMs("prod")
         manageRegions("prod")
-        # monitorLogins()
         monitorDisks("prod")
         time.sleep(10)
 
@@ -411,9 +410,8 @@ if __name__ == "__main__":
     t2 = threading.Thread(target=reportThread)
     t3 = threading.Thread(target=stagingMonitorThread)
 
-    # Reset log file
-    # open("log.txt", "w").close()
-
-    t1.start()
-    t2.start()
-    t3.start()
+    # on-off toggle for running the monitor server based on Heroku config var
+    if os.getenv("RUNNING"):
+        t1.start()
+        t2.start()
+        t3.start()
