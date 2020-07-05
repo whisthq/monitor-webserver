@@ -2,9 +2,11 @@
 
 ![Python Webserver CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20Webserver%20CI/badge.svg)
 
-This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the heroku CLI.
+This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the Heroku CLI.
 
 Our webserver is hosted on Heroku [here](https://fractal-monitor-server.herokuapp.com).
+
+Our webserver logs are hosted on Datadog [here](https://app.datadoghq.com/logs?cols=core_host%2Ccore_service&from_ts=1593977274176&index=&live=true&messageDisplay=inline&stream_sort=desc&to_ts=1593978174176).
 
 ## Development
 
@@ -26,7 +28,7 @@ To push to the server, first make sure you’re in your own branch, then type `g
 
 To run the monitor script, type `heroku run:detached python monitor.py`.
 
-To view the verbose server logs on Heroku, type `heroku logs --tail`. We also aggregate logs in Datadog. You can access them [here]. If you need to modify the Datadog logging, refer to the [Heroku Webserver Datadog Logging](https://www.notion.so/fractalcomputers/Heroku-Webserver-Datadog-Logging-dfd38d40705a4226b9f0922ef262709c) in the Engineering Wiki in the Fractal Notion.
+To view the verbose server logs on Heroku, type `heroku logs --tail`. We also aggregate logs in Datadog. You can access them [here](https://app.datadoghq.com/logs?cols=core_host%2Ccore_service&from_ts=1593977274176&index=&live=true&messageDisplay=inline&stream_sort=desc&to_ts=1593978174176). If you need to modify the Datadog logging, refer to the [Heroku Webserver Datadog Logging](https://www.notion.so/fractalcomputers/Heroku-Webserver-Datadog-Logging-dfd38d40705a4226b9f0922ef262709c) in the Engineering Wiki in the Fractal Notion.
 
 To view the current running processes, type `heroku ps`.
 
@@ -69,4 +71,4 @@ To get started right away with sensible defaults:
 black {source_file_or_directory}
 ```
 
-To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`:
+To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`.
