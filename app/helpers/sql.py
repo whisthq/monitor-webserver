@@ -199,7 +199,7 @@ def fetchDevVms(devEnv="prod"):
         else os.getenv("DATABASE_URL")
     )
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
-    
+
     command = text(
         """
         SELECT vm_name FROM v_ms
@@ -292,7 +292,7 @@ def getMostRecentActivity(username, devEnv="prod"):
     )
 
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
-    
+
     command = text(
         """
         SELECT *
