@@ -2,7 +2,7 @@
 
 ![Python Webserver CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20Webserver%20CI/badge.svg)
 
-This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the heroku CLI.
+This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the Heroku CLI.
 
 Our webserver is hosted on Heroku [here](https://fractal-monitor-server.herokuapp.com).
 
@@ -69,4 +69,4 @@ To get started right away with sensible defaults:
 black {source_file_or_directory}
 ```
 
-To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`:
+To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`.
