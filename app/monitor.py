@@ -338,7 +338,8 @@ def nightToggle(devEnv):
 
 
 def monitorThread():
-    while True:
+    # on-off toggle for running the monitor server based on Heroku config var
+    while os.getenv("RUNNING"):
         nightToggle("prod")
         monitorVMs("prod")
         manageRegions("prod")
@@ -347,7 +348,8 @@ def monitorThread():
 
 
 def stagingMonitorThread():
-    while True:
+    # on-off toggle for running the monitor server based on Heroku config var
+    while os.getenv("RUNNING"):
         monitorVMs("staging")
         manageRegions("staging")
         monitorDisks("staging")
@@ -356,7 +358,8 @@ def stagingMonitorThread():
 
 def reportThread():
     global timesDeallocated
-    while True:
+    # on-off toggle for running the monitor server based on Heroku config var
+    while os.getenv("RUNNING"):
         timesDeallocated = 0
         time.sleep(60 * 60)
 
@@ -410,8 +413,6 @@ if __name__ == "__main__":
     t2 = threading.Thread(target=reportThread)
     t3 = threading.Thread(target=stagingMonitorThread)
 
-    # on-off toggle for running the monitor server based on Heroku config var
-    if os.getenv("RUNNING"):
-        t1.start()
-        t2.start()
-        t3.start()
+    t1.start()
+    t2.start()
+    t3.start()
