@@ -11,6 +11,7 @@ def test_monitorVMs():
     # can't really be unit tested
     assert True
 
+
 def test_monitorDisks():
     # can't really be unit tested
     assert True
