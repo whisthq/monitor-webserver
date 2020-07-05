@@ -26,8 +26,7 @@ To push to the server, first make sure you’re in your own branch, then type `g
 
 To run the monitor script, type `heroku run:detached python monitor.py`.
 
-To view the verbose server logs, type `heroku logs --tail`.  
-The server also logs INFO, WARNING, ERROR, and CRITICAL logs to PaperTrail, as [MONITOR].
+To view the verbose server logs on Heroku, type `heroku logs --tail`. We also aggregate logs in Datadog. You can access them [here]. If you need to modify the Datadog logging, refer to the [Heroku Webserver Datadog Logging](https://www.notion.so/fractalcomputers/Heroku-Webserver-Datadog-Logging-dfd38d40705a4226b9f0922ef262709c) in the Engineering Wiki in the Fractal Notion.
 
 To view the current running processes, type `heroku ps`.
 

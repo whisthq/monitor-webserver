@@ -1,6 +1,5 @@
 from app.monitor import (
     monitorVMs,
-    monitorLogins,
     monitorDisks,
     manageRegions,
     monitorThread,
@@ -11,12 +10,6 @@ from app.monitor import (
 def test_monitorVMs():
     # can't really be unit tested
     assert True
-
-
-def test_monitorLogins():
-    # can't really be unit tested
-    assert True
-
 
 def test_monitorDisks():
     # can't really be unit tested
