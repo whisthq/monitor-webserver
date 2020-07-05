@@ -6,6 +6,8 @@ This repo contains the code that runs on our Heroku webserver, that monitors for
 
 Our webserver is hosted on Heroku [here](https://fractal-monitor-server.herokuapp.com).
 
+Our logs are hosted on Datadog [here](https://app.datadoghq.com/logs?cols=core_host%2Ccore_service&from_ts=1593977274176&index=&live=true&messageDisplay=inline&stream_sort=desc&to_ts=1593978174176).
+
 ## Development
 
 ### Local Setup (Windows/MacOS)
