@@ -22,61 +22,61 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def sendDebug(log, papertrail=True):
+def sendDebug(log, upload_logs_to_cloud=True):
     """Logs debug messages
 
     Args:
         log (str): The message
-        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+        upload_logs_to_cloud (bool, optional): Whether or not to send to Datadog. Defaults to True.
     """
-    # if papertrail:
+    # if upload_logs_to_cloud:
     #     logger.debug(log)
     print(log)
 
 
-def sendInfo(log, papertrail=True):
+def sendInfo(log, upload_logs_to_cloud=True):
     """Logs info messages
 
     Args:
         log (str): The message
-        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+        upload_logs_to_cloud (bool, optional): Whether or not to send to Datadog. Defaults to True.
     # """
-    # if papertrail:
+    # if upload_logs_to_cloud:
     #     logger.info(log)
     print(log)
 
 
-def sendWarning(log, papertrail=True):
+def sendWarning(log, upload_logs_to_cloud=True):
     """Logs warning messages
 
     Args:
         log (str): The message
-        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+        upload_logs_to_cloud (bool, optional): Whether or not to send to Datadog. Defaults to True.
     """
-    if papertrail:
-        logger.warning(log)
+    # if upload_logs_to_cloud:
+    #     logger.warning(log)
     print(log)
 
 
-def sendError(log, papertrail=True):
+def sendError(log, upload_logs_to_cloud=True):
     """Logs errors
 
     Args:
         log (str): The message
-        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+        upload_logs_to_cloud (bool, optional): Whether or not to send to Datadog. Defaults to True.
     """
-    # if papertrail:
+    # if upload_logs_to_cloud:
     #     logger.error(log)
     print(log)
 
 
-def sendCritical(log, papertrail=True):
+def sendCritical(log, upload_logs_to_cloud=True):
     """Logs critical errors
 
     Args:
         log (str): The message
-        papertrail (bool, optional): Whether or not to send to papertrail. Defaults to True.
+        upload_logs_to_cloud (bool, optional): Whether or not to send to Datadog. Defaults to True.
     """
-    # if papertrail:
+    # if upload_logs_to_cloud:
     #     logger.critical(log)
     print(log)

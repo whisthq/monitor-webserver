@@ -50,7 +50,6 @@ def waitForWinlogon(vm_name):
 
     Args:
         vm_name (str): Name of the vm
-        ID (int, optional): Unique papertrail logging id. Defaults to -1.
 
     Returns:
         int: 1 for success, -1 for fail
@@ -97,7 +96,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
     Args:
         vm_name (str): The name of the vm to start
         needs_restart (bool): Whether the vm needs to restart after
-        ID (int, optional): Unique papertrail logging id. Defaults to -1.
+        ID (int, optional): Unique logging id. Defaults to -1.
 
     Returns:
         int: 1 for success, -1 for fail
