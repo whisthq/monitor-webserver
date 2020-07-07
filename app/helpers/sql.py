@@ -554,3 +554,29 @@ def getLogons(timestamp, action, devEnv="prod"):
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
         return activity
+
+
+def fetchAllLogs(devEnv="prod"):
+    """Fetches all the logs
+
+    Returns:
+        arr[dict]: An array of all the logs in the logs sql table
+    """
+
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+
+    command = text(
+        """
+            SELECT * FROM logs
+            """
+    )
+    params = {}
+    with ENGINE.connect() as conn:
+        logs = cleanFetchedSQL(conn.execute(command, **params).fetchall())
+        conn.close()
+        return logs

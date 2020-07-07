@@ -11,3 +11,4 @@ numpy
 SQLAlchemy
 Flask
 python-dotenv
+boto3

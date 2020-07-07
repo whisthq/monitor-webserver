@@ -1,6 +1,7 @@
 from app.imports import *
 from app.helpers.sql import *
 from app.helpers.vms import *
+from app.helpers.s3 import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -135,7 +136,6 @@ def monitorVMs(devEnv):
                         shutdown = False
 
                     if shutdown:
-                        print(shutdown)
                         deallocVm(vm["vm_name"], devEnv)
                         if devEnv == "prod":
                             timesDeallocated += 1
@@ -313,6 +313,28 @@ def manageRegions(devEnv):
                     reportError("Region monitor error for region " + location)
 
 
+def monitorLogs(devEnv):
+    """Deletes any logs in the logs table, that are over 30 days old
+
+    Args:
+        devEnv (str): Dev environment 
+    """
+
+    sendDebug("Monitoring " + devEnv + " logs...")
+
+    sqlLogs = fetchAllLogs(devEnv)
+    thirtyDaysAgo = datetime.now() - timedelta(days=30)
+    for log in sqlLogs:
+        lastUpdated = datetime.strptime(log["last_updated"], "%m/%d/%Y, %H:%M")
+        if lastUpdated < thirtyDaysAgo:
+            sendInfo(
+                "Automatically deleting log with connection_id "
+                + log["connection_id"]
+                + "..."
+            )
+            deleteLogsInS3(log["connection_id"], devEnv)
+
+
 def nightToggle(devEnv):
     """Shuts off dev vms and region management between times EST 1am -> 7am in prod db
     """
@@ -341,6 +363,7 @@ def monitorThread():
         monitorVMs("prod")
         manageRegions("prod")
         monitorDisks("prod")
+        monitorLogs("prod")
         time.sleep(10)
 
 
@@ -350,6 +373,7 @@ def stagingMonitorThread():
         monitorVMs("staging")
         manageRegions("staging")
         monitorDisks("staging")
+        monitorLogs("staging")
         time.sleep(10)
 
 
