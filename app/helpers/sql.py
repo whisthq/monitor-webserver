@@ -612,7 +612,7 @@ def fetchExpiredLogs(expiry, devEnv="prod"):
 
 
 def fetchStingyCustomers(devEnv="prod"):
-    aWeekAgo = datetime.timestamp(datetime.now() - datetime.timedelta(days=7))
+    aWeekAgo = datetime.timestamp(datetime.now() - timedelta(days=7))
 
     dbUrl = (
         os.getenv("STAGING_DATABASE_URL")
