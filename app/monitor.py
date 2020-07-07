@@ -327,7 +327,7 @@ def monitorLogs(devEnv):
 
     thirtyDaysAgo = datetime.now() - timedelta(days=30)
 
-    sqlLogs = fetchExpiredLogs(devEnv)
+    sqlLogs = fetchExpiredLogs(thirtyDaysAgo, devEnv)
     if sqlLogs:
         for log in sqlLogs:
             sendInfo(

@@ -24,7 +24,7 @@ def deleteLogsInS3(connection_id, devEnv="prod"):
             s3.Object(bucket, file_name).delete()
             return True
         except Exception as e:
-            sendError(str(e))
+            sendError("Error deleting log: " + str(e))
             return False
 
     dbUrl = (
