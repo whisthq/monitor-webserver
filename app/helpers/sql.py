@@ -581,3 +581,26 @@ def fetchExpiredLogs(expiry, devEnv="prod"):
         logs = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
         return logs
+
+
+def fetchStingyCustomers(devEnv="prod"):
+    aWeekAgo = dateimte.timestamp(datetime.now() - datetime.timedelta(days=7))
+
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+
+    command = text(
+        """
+            SELECT username FROM customers
+            WHERE paid = false AND trial_end < :expiry
+        """
+    )
+    params = {"expiry": aWeekAgo}
+    with ENGINE.connect() as conn:
+        customers = cleanFetchedSQL(conn.execute(command, **params).fetchall())
+        conn.close()
+        return customers
