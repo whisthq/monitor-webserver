@@ -274,13 +274,7 @@ def updateDiskState(disk_name, state, devEnv="prod"):
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
-    sendInfo(
-        "Disk state for "
-        + disk_name
-        + " updated to "
-        + state
-        + "..."
-    )
+    sendInfo("Disk state for " + disk_name + " updated to " + state + "...")
 
 
 def getMostRecentActivity(username, devEnv="prod"):
@@ -618,7 +612,7 @@ def fetchExpiredLogs(expiry, devEnv="prod"):
 
 
 def fetchStingyCustomers(devEnv="prod"):
-    aWeekAgo = dateimte.timestamp(datetime.now() - datetime.timedelta(days=7))
+    aWeekAgo = datetime.timestamp(datetime.now() - datetime.timedelta(days=7))
 
     dbUrl = (
         os.getenv("STAGING_DATABASE_URL")
