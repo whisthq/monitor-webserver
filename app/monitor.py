@@ -150,14 +150,19 @@ def monitorVMs(devEnv):
 
 
 def monitorDisks(devEnv):
-    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED. Also delets disks for users that haven't paid hand had a trial expire over 7 days ago.
+    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED. Also delets disks for trial users that haven't paid and had a trial expire over 7 days ago.
 
     Args:
         staging (bool): Whether to monitor staging or prod db
     """
     sendDebug("Monitoring " + devEnv + " disks...")
 
-    # Marks disks for users who haven't paid as TO_BE_DELETED
+    # Marks trial disks for users who haven't paid as TO_BE_DELETED
+    unpaidCustomers = fetchStingyCustomers(devEnv)
+    for customer in unpaidCustomers:
+        userDisks = fetchDiskByUser(customer["username"], devEnv)
+        for disk in userDisks:
+            updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
 
     # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
     azureGroup = (
@@ -330,11 +335,6 @@ def monitorLogs(devEnv):
     sqlLogs = fetchExpiredLogs(thirtyDaysAgo, devEnv)
     if sqlLogs:
         for log in sqlLogs:
-            sendInfo(
-                "Automatically deleting log with connection_id "
-                + str(log["connection_id"])
-                + "..."
-            )
             deleteLogsInS3(log["connection_id"], devEnv)
 
 

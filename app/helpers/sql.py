@@ -274,6 +274,13 @@ def updateDiskState(disk_name, state, devEnv="prod"):
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
+    sendInfo(
+        "Disk state for "
+        + disk_name
+        + " updated to "
+        + state
+        + "..."
+    )
 
 
 def getMostRecentActivity(username, devEnv="prod"):
@@ -364,6 +371,33 @@ def fetchAllDisks(devEnv="prod"):
             """
     )
     params = {}
+    with ENGINE.connect() as conn:
+        disks = cleanFetchedSQL(conn.execute(command, **params).fetchall())
+        conn.close()
+        return disks
+
+
+def fetchDiskByUser(username, devEnv="prod"):
+    """Fetches all the disks that belong to a user
+
+    Returns:
+        arr[dict]: An array of all the disks in the disks sql table
+    """
+
+    dbUrl = (
+        os.getenv("STAGING_DATABASE_URL")
+        if devEnv == "staging"
+        else os.getenv("DATABASE_URL")
+    )
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+
+    command = text(
+        """
+            SELECT * FROM disks
+            WHERE username = :username
+        """
+    )
+    params = {"username": username}
     with ENGINE.connect() as conn:
         disks = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
