@@ -167,9 +167,6 @@ def monitorDisks(devEnv):
     for disk in disks:
         azureDisks.append(disk.name)
 
-    print("group: " + azureGroup)
-    print("polisheddisk202_OsDisk_1_b2ec7e4c866d4b78ad0a870160e27ca9" in azureDisks)
-
     for dbDisk in dbDisks:
         try:
             if dbDisk["disk_name"] not in azureDisks:
