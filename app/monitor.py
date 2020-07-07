@@ -329,7 +329,7 @@ def monitorLogs(devEnv):
         if lastUpdated < thirtyDaysAgo:
             sendInfo(
                 "Automatically deleting log with connection_id "
-                + log["connection_id"]
+                + str(log["connection_id"])
                 + "..."
             )
             deleteLogsInS3(log["connection_id"], devEnv)
