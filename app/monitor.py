@@ -434,6 +434,6 @@ if __name__ == "__main__":
     t2 = threading.Thread(target=reportThread)
     t3 = threading.Thread(target=stagingMonitorThread)
 
-    t1.start()
+    # t1.start()
     t2.start()
     t3.start()
