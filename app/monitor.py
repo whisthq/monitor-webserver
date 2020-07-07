@@ -161,8 +161,9 @@ def monitorDisks(devEnv):
     unpaidCustomers = fetchStingyCustomers(devEnv)
     for customer in unpaidCustomers:
         userDisks = fetchDiskByUser(customer["username"], devEnv)
-        for disk in userDisks:
-            updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
+        if userDisks:
+            for disk in userDisks:
+                updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
 
     # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
     azureGroup = (
