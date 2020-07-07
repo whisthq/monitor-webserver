@@ -157,6 +157,9 @@ def monitorDisks(devEnv):
     """
     sendDebug("Monitoring " + devEnv + " disks...")
 
+    # Marks disks for users who haven't paid as TO_BE_DELETED
+
+    # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
     azureGroup = (
         os.getenv("STAGING_GROUP") if devEnv == "staging" else os.getenv("VM_GROUP")
     )
@@ -322,18 +325,20 @@ def monitorLogs(devEnv):
 
     sendDebug("Monitoring " + devEnv + " logs...")
 
-    sqlLogs = fetchAllLogs(devEnv)
     thirtyDaysAgo = datetime.now() - timedelta(days=30)
-    if(sqlLogs):
-        for log in sqlLogs:
-            lastUpdated = datetime.strptime(log["last_updated"], "%m/%d/%Y, %H:%M")
-            if lastUpdated < thirtyDaysAgo:
-                sendInfo(
-                    "Automatically deleting log with connection_id "
-                    + str(log["connection_id"])
-                    + "..."
-                )
-                deleteLogsInS3(log["connection_id"], devEnv)
+    print(thirtyDaysAgo.strftime("%m/%d/%Y, %H:%M"))
+
+    # sqlLogs = fetchExpiredLogs(devEnv)
+    # if(sqlLogs):
+    #     for log in sqlLogs:
+    #         lastUpdated = datetime.strptime(log["last_updated"], "%m/%d/%Y, %H:%M")
+    #         if lastUpdated < thirtyDaysAgo:
+    #             sendInfo(
+    #                 "Automatically deleting log with connection_id "
+    #                 + str(log["connection_id"])
+    #                 + "..."
+    #             )
+    #             deleteLogsInS3(log["connection_id"], devEnv)
 
 
 def nightToggle(devEnv):

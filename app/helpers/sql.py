@@ -556,7 +556,7 @@ def getLogons(timestamp, action, devEnv="prod"):
         return activity
 
 
-def fetchAllLogs(devEnv="prod"):
+def fetchExpiredLogs(expiry, devEnv="prod"):
     """Fetches all the logs
 
     Returns:
@@ -573,9 +573,10 @@ def fetchAllLogs(devEnv="prod"):
     command = text(
         """
             SELECT * FROM logs
+            WHERE last_updated < :expiry
             """
     )
-    params = {}
+    params = {"expiry": expiry}
     with ENGINE.connect() as conn:
         logs = cleanFetchedSQL(conn.execute(command, **params).fetchall())
         conn.close()
