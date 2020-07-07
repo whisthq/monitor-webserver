@@ -324,15 +324,16 @@ def monitorLogs(devEnv):
 
     sqlLogs = fetchAllLogs(devEnv)
     thirtyDaysAgo = datetime.now() - timedelta(days=30)
-    for log in sqlLogs:
-        lastUpdated = datetime.strptime(log["last_updated"], "%m/%d/%Y, %H:%M")
-        if lastUpdated < thirtyDaysAgo:
-            sendInfo(
-                "Automatically deleting log with connection_id "
-                + str(log["connection_id"])
-                + "..."
-            )
-            deleteLogsInS3(log["connection_id"], devEnv)
+    if(sqlLogs):
+        for log in sqlLogs:
+            lastUpdated = datetime.strptime(log["last_updated"], "%m/%d/%Y, %H:%M")
+            if lastUpdated < thirtyDaysAgo:
+                sendInfo(
+                    "Automatically deleting log with connection_id "
+                    + str(log["connection_id"])
+                    + "..."
+                )
+                deleteLogsInS3(log["connection_id"], devEnv)
 
 
 def nightToggle(devEnv):
@@ -434,6 +435,6 @@ if __name__ == "__main__":
     t2 = threading.Thread(target=reportThread)
     t3 = threading.Thread(target=stagingMonitorThread)
 
-    # t1.start()
+    t1.start()
     t2.start()
     t3.start()
