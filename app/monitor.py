@@ -150,7 +150,7 @@ def monitorVMs(devEnv):
 
 
 def monitorDisks(devEnv):
-    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED
+    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED. Also delets disks for users that haven't paid hand had a trial expire over 7 days ago.
 
     Args:
         staging (bool): Whether to monitor staging or prod db
