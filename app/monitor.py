@@ -1,6 +1,7 @@
 from app.imports import *
 from app.helpers.sql import *
 from app.helpers.vms import *
+from app.helpers.s3 import *
 
 # Create db engine object
 ENGINE = sqlalchemy.create_engine(
@@ -37,7 +38,7 @@ TEST_SHUTOFF = False
 
 
 def monitorVMs(devEnv):
-    """Deallocates any VM that has been running for over 30 minutes while user has been logged off
+    """Deallocates any VM that has been running for over 30 minutes while user has been logged off. Also updates the database wstate.
 
     Args:
         staging (bool): Whether to monitor staging or prod db
@@ -135,7 +136,6 @@ def monitorVMs(devEnv):
                         shutdown = False
 
                     if shutdown:
-                        print(shutdown)
                         deallocVm(vm["vm_name"], devEnv)
                         if devEnv == "prod":
                             timesDeallocated += 1
@@ -150,13 +150,23 @@ def monitorVMs(devEnv):
 
 
 def monitorDisks(devEnv):
-    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED
+    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED. Also delets disks for trial users that haven't paid and had a trial expire over 7 days ago.
 
     Args:
         staging (bool): Whether to monitor staging or prod db
     """
     sendDebug("Monitoring " + devEnv + " disks...")
 
+    # Marks trial disks for users who haven't paid as TO_BE_DELETED
+    unpaidCustomers = fetchStingyCustomers(devEnv)
+    for customer in unpaidCustomers:
+        userDisks = fetchDiskByUser(customer["username"], devEnv)
+        if userDisks:
+            for disk in userDisks:
+                if disk["state"] != "TO_BE_DELETED":
+                    updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
+
+    # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
     azureGroup = (
         os.getenv("STAGING_GROUP") if devEnv == "staging" else os.getenv("VM_GROUP")
     )
@@ -166,9 +176,6 @@ def monitorDisks(devEnv):
     disks = CCLIENT.disks.list_by_resource_group(resource_group_name=azureGroup)
     for disk in disks:
         azureDisks.append(disk.name)
-
-    print("group: " + azureGroup)
-    print("polisheddisk202_OsDisk_1_b2ec7e4c866d4b78ad0a870160e27ca9" in azureDisks)
 
     for dbDisk in dbDisks:
         try:
@@ -316,6 +323,23 @@ def manageRegions(devEnv):
                     reportError("Region monitor error for region " + location)
 
 
+def monitorLogs(devEnv):
+    """Deletes any logs in the logs table, that are over 30 days old
+
+    Args:
+        devEnv (str): Dev environment 
+    """
+
+    sendDebug("Monitoring " + devEnv + " logs...")
+
+    thirtyDaysAgo = (datetime.now() - timedelta(days=30)).strftime("%m/%d/%Y, %H:%M")
+
+    sqlLogs = fetchExpiredLogs(thirtyDaysAgo, devEnv)
+    if sqlLogs:
+        for log in sqlLogs:
+            deleteLogsInS3(log["connection_id"], devEnv)
+
+
 def nightToggle(devEnv):
     """Shuts off dev vms and region management between times EST 1am -> 7am in prod db
     """
@@ -344,6 +368,7 @@ def monitorThread():
         monitorVMs("prod")
         manageRegions("prod")
         monitorDisks("prod")
+        monitorLogs("prod")
         time.sleep(10)
 
 
@@ -353,6 +378,7 @@ def stagingMonitorThread():
         monitorVMs("staging")
         manageRegions("staging")
         monitorDisks("staging")
+        monitorLogs("staging")
         time.sleep(10)
 
 

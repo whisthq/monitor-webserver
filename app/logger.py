@@ -19,7 +19,7 @@ from .imports import *
 
 logger = logging.getLogger()
 # logger.addHandler(syslog)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 def sendDebug(log, upload_logs_to_cloud=True):
