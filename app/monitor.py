@@ -38,7 +38,7 @@ TEST_SHUTOFF = False
 
 
 def monitorVMs(devEnv):
-    """Deallocates any VM that has been running for over 30 minutes while user has been logged off
+    """Deallocates any VM that has been running for over 30 minutes while user has been logged off. Also updates the database wstate.
 
     Args:
         staging (bool): Whether to monitor staging or prod db
@@ -163,7 +163,8 @@ def monitorDisks(devEnv):
         userDisks = fetchDiskByUser(customer["username"], devEnv)
         if userDisks:
             for disk in userDisks:
-                updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
+                if disk["state"] !== "TO_BE_DELETED":
+                    updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
 
     # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
     azureGroup = (
