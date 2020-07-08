@@ -163,7 +163,7 @@ def monitorDisks(devEnv):
         userDisks = fetchDiskByUser(customer["username"], devEnv)
         if userDisks:
             for disk in userDisks:
-                if disk["state"] !== "TO_BE_DELETED":
+                if disk["state"] != "TO_BE_DELETED":
                     updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
 
     # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
