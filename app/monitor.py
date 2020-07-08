@@ -38,7 +38,8 @@ TEST_SHUTOFF = False
 
 
 def monitorVMs(devEnv):
-    """Deallocates any VM that has been running for over 30 minutes while user has been logged off. Also updates the database wstate.
+    """Deallocates any VM that has been running for over 30 minutes while user has been logged off. 
+       Also updates the database state.
 
     Args:
         staging (bool): Whether to monitor staging or prod db
@@ -150,7 +151,8 @@ def monitorVMs(devEnv):
 
 
 def monitorDisks(devEnv):
-    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED. Also delets disks for trial users that haven't paid and had a trial expire over 7 days ago.
+    """Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
+       Also deletes disks for trial users that haven't paid and had a trial expire over 7 days ago.
 
     Args:
         staging (bool): Whether to monitor staging or prod db
