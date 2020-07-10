@@ -103,7 +103,7 @@ def monitorVMs(devEnv):
                 # Free up VMs that have been left hanging by the client application
                 if vm["state"] == "RUNNING_UNAVAILABLE":
                     lastConnectStamp = dt.fromtimestamp(vm["ready_to_connect"])
-                    if lastConnectStamp < dt.now() - timedelta(seconds=30):
+                    if lastConnectStamp < dt.now() - timedelta(seconds=15):
                         updateVMState(vm["vm_name"], "RUNNING_AVAILABLE", devEnv)
                         lockVM(vm["vm_name"], False, devEnv)
 
