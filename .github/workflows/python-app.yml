@@ -1,10 +1,8 @@
-# This workflow will install Python dependencies and run unit tests with pytest, all on Python 3.6.
+# This workflow will install Python dependencies and run unit tests with pytest, all on Python 3.6
 
 name: Python Webserver CI
 
 on:
-  push:
-    branches: [ master, staging ]
   pull_request:
     branches: [ master, staging ]
 
