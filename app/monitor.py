@@ -101,6 +101,13 @@ def monitorVMs(devEnv):
                         if vm["state"] != "DEALLOCATING":
                             updateVMState(vm["vm_name"], "DEALLOCATING", devEnv)
 
+                # Free up VMs that have been left hanging by the client application
+                if vm["state"] == "RUNNING_UNAVAILABLE":
+                    lastConnectStamp = dt.fromtimestamp(vm["ready_to_connect"])
+                    if lastConnectStamp < dt.now() - timedelta(seconds=15):
+                        updateVMState(vm["vm_name"], "RUNNING_AVAILABLE", devEnv)
+                        lockVM(vm["vm_name"], False, devEnv)
+
                 # Automatically deallocate VMs on standby
                 if "running" in vm_state.statuses[1].code:
                     shutdown = False

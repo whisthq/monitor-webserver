@@ -466,7 +466,7 @@ def getVMLocationState(location, state, operatingSys=None, devEnv="prod"):
     )
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
 
-    nowTime = datetime.now().timestamp()
+    nowTime = round(datetime.now().timestamp())
 
     if operatingSys:
         command = text(
