@@ -20,7 +20,7 @@ Here are the main setups to run this webserver on Heroku. While developing mainl
 
 `https://git.heroku.com/fractal-monitor-server.git`
 
-To push to the Heroku servers, you’ll first need to set up the Heroku CLI on your computer.
+To push to the Heroku server, you’ll first need to set up the Heroku CLI on your computer.
 
 First, add the Heroku server as a remote: `heroku git:remote -a fractal-monitor-server`. You will need to be added as a collaborator for the fractal-monitor-server Heroku app. Contact Ming, Phil or Jonathan to be added.
 
