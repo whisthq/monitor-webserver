@@ -2,7 +2,7 @@
 
 ![Python Webserver CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20Webserver%20CI/badge.svg)
 
-This repo contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the Heroku CLI.
+This repository contains the code that runs on our Heroku webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the Heroku CLI.
 
 Our webserver is hosted on Heroku [here](https://fractal-monitor-server.herokuapp.com).
 
@@ -14,13 +14,13 @@ Our webserver logs are hosted on Datadog [here](https://app.datadoghq.com/logs?c
 
 Since the monitor-webserver runs independently from any other services, and that it already has access to the SQL databases, we currently do not do testing on local machines. If the time comes where we have testing sql tables, the monitor webserver will be changed to accomodate local testing.
 
-Here are the main setups to run this webserver on Heroku. If developing mainly in Heroku, you should make sure to commit your latest code to GitHub, since this is where our development happens. We have basic continuous integration set via GitHub Actions. For every push or PR to master, the commit will be built and formatted via Python Black, see below. You should always make sure that your code passes the tests in the Actions tab.
+Here are the main setups to run this webserver on Heroku. While developing mainly in Heroku, you should make sure to commit your latest code to GitHub, since this is where our development happens. We have basic continuous integration set via GitHub Actions. For every push or PR to master, the commit will be built and formatted via Python Black, see below. You should always make sure that your code passes the tests in the Actions tab.
 
 ### Run on Heroku
 
 `https://git.heroku.com/fractal-monitor-server.git`
 
-To push to the Heroku servers, you’ll first need to set up the Heroku CLI on your computer.
+To push to the Heroku server, you’ll first need to set up the Heroku CLI on your computer.
 
 First, add the Heroku server as a remote: `heroku git:remote -a fractal-monitor-server`. You will need to be added as a collaborator for the fractal-monitor-server Heroku app. Contact Ming, Phil or Jonathan to be added.
 
