@@ -103,8 +103,8 @@ def monitorVMs(devEnv):
 
                 # Free up VMs that have been left hanging by the client application
                 if vm["state"] == "RUNNING_UNAVAILABLE":
-                    lastConnectStamp = dt.fromtimestamp(vm["ready_to_connect"])
-                    if lastConnectStamp < dt.now() - timedelta(seconds=15):
+                    lastConnectStamp = datetime.fromtimestamp(vm["ready_to_connect"])
+                    if lastConnectStamp < datetime.now() - timedelta(seconds=15):
                         updateVMState(vm["vm_name"], "RUNNING_AVAILABLE", devEnv)
                         lockVM(vm["vm_name"], False, devEnv)
 
@@ -362,7 +362,8 @@ def nightToggle(devEnv):
                 REGION_THRESHOLD[devEnv][system] = 0
             vms = fetchDevVms(devEnv)
             for vm in vms:
-                deallocVm(vm["vm_name"], devEnv)
+                if vm["vm_name"] != "tightcherry1090":
+                    deallocVm(vm["vm_name"], devEnv)
             TEST_SHUTOFF = True
     elif TEST_SHUTOFF:
         sendInfo("Resuming region management")
