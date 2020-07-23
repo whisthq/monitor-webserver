@@ -230,35 +230,36 @@ def monitorDisks(devEnv):
                     sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
 
                     # Send email to support@fractalcomputers.com
-                    title = "Automatically deleted disk for " + dbDisk["username"]
-                    message = (
-                        "The monitor webserver has automatically deleted disk "
-                        + dbDisk["disk_name"]
-                        + " for user "
-                        + dbDisk["username"]
-                    )
-                    internal_message = SendGridMail(
-                        from_email="noreply@fractalcomputers.com",
-                        to_emails=["support@fractalcomputers.com"],
-                        subject=title,
-                        html_content=message,
-                    )
-                    response = sg.send(internal_message)
+                    if dbDisk["username"]:
+                        title = "Automatically deleted disk for " + dbDisk["username"]
+                        message = (
+                            "The monitor webserver has automatically deleted disk "
+                            + dbDisk["disk_name"]
+                            + " for user "
+                            + dbDisk["username"]
+                        )
+                        internal_message = SendGridMail(
+                            from_email="noreply@fractalcomputers.com",
+                            to_emails=["support@fractalcomputers.com"],
+                            subject=title,
+                            html_content=message,
+                        )
+                        response = sg.send(internal_message)
 
-                    # Send email to user
-                    currPath = os.path.abspath(os.path.dirname(sys.argv[0]))
-                    path = os.path.join(currPath, "templates/disk_deleted.txt")
-                    with open(path, "r") as template:
-                        templateData = template.read()
+                        # Send email to user
+                        currPath = os.path.abspath(os.path.dirname(sys.argv[0]))
+                        path = os.path.join(currPath, "templates/disk_deleted.txt")
+                        with open(path, "r") as template:
+                            templateData = template.read()
 
-                    title = "Your cloud PC has automatically been deleted"
-                    internal_message = SendGridMail(
-                        from_email="noreply@fractalcomputers.com",
-                        to_emails=[dbDisk["username"]],
-                        subject=title,
-                        html_content=templateData,
-                    )
-                    response = sg.send(internal_message)
+                        title = "Your cloud PC has automatically been deleted"
+                        internal_message = SendGridMail(
+                            from_email="noreply@fractalcomputers.com",
+                            to_emails=[dbDisk["username"]],
+                            subject=title,
+                            html_content=templateData,
+                        )
+                        response = sg.send(internal_message)
 
         except:
             reportError("Disk monitor for disk " + dbDisk["disk_name"])
