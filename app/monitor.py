@@ -168,12 +168,13 @@ def monitorDisks(devEnv):
 
     # Marks trial disks for users who haven't paid as TO_BE_DELETED
     unpaidCustomers = fetchStingyCustomers(devEnv)
-    for customer in unpaidCustomers:
-        userDisks = fetchDiskByUser(customer["username"], devEnv)
-        if userDisks:
-            for disk in userDisks:
-                if disk["state"] != "TO_BE_DELETED":
-                    updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
+    if unpaidCustomers:
+        for customer in unpaidCustomers:
+            userDisks = fetchDiskByUser(customer["username"], devEnv)
+            if userDisks:
+                for disk in userDisks:
+                    if disk["state"] != "TO_BE_DELETED":
+                        updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
 
     # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
     azureGroup = (
