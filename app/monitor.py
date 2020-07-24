@@ -278,12 +278,20 @@ def manageRegions(devEnv):
 
     # TODO: Add region support
     for operatingSystem in VM_OS:
+        print(
+            devEnv
+            + " "
+            + operatingSystem
+            + " "
+            + REGION_THRESHOLD[devEnv][operatingSystem]
+        )
         if REGION_THRESHOLD[devEnv][operatingSystem] > 0:
             for location in REGIONS:
                 try:
                     availableVms = getVMLocationState(
                         location, "RUNNING_AVAILABLE", operatingSystem, devEnv
                     )
+                    print(len(availableVms))
                     if (
                         not availableVms
                         or len(availableVms) < REGION_THRESHOLD[devEnv][operatingSystem]
