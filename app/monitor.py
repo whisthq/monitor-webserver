@@ -291,11 +291,11 @@ def manageRegions(devEnv):
                     availableVms = getVMLocationState(
                         location, "RUNNING_AVAILABLE", operatingSystem, devEnv
                     )
-                    print(len(availableVms))
                     if (
                         not availableVms
                         or len(availableVms) < REGION_THRESHOLD[devEnv][operatingSystem]
                     ):
+                        print("less than!" + devEnv + operatingSystem + location)
                         deallocVms = getVMLocationState(
                             location, "DEALLOCATED", operatingSystem, devEnv
                         )
