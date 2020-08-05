@@ -103,8 +103,8 @@ def monitorVMs(devEnv):
 
                 # Free up VMs that have been left hanging by the client application
                 if vm["state"] == "RUNNING_UNAVAILABLE":
-                    lastConnectStamp = dt.fromtimestamp(vm["ready_to_connect"])
-                    if lastConnectStamp < dt.now() - timedelta(seconds=15):
+                    lastConnectStamp = datetime.fromtimestamp(vm["ready_to_connect"])
+                    if lastConnectStamp < datetime.now() - timedelta(seconds=15):
                         updateVMState(vm["vm_name"], "RUNNING_AVAILABLE", devEnv)
                         lockVM(vm["vm_name"], False, devEnv)
 
@@ -168,12 +168,13 @@ def monitorDisks(devEnv):
 
     # Marks trial disks for users who haven't paid as TO_BE_DELETED
     unpaidCustomers = fetchStingyCustomers(devEnv)
-    for customer in unpaidCustomers:
-        userDisks = fetchDiskByUser(customer["username"], devEnv)
-        if userDisks:
-            for disk in userDisks:
-                if disk["state"] != "TO_BE_DELETED":
-                    updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
+    if unpaidCustomers:
+        for customer in unpaidCustomers:
+            userDisks = fetchDiskByUser(customer["username"], devEnv)
+            if userDisks:
+                for disk in userDisks:
+                    if disk["state"] != "TO_BE_DELETED":
+                        updateDiskState(disk["disk_name"], "TO_BE_DELETED", devEnv)
 
     # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
     azureGroup = (
@@ -229,35 +230,36 @@ def monitorDisks(devEnv):
                     sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
 
                     # Send email to support@fractalcomputers.com
-                    title = "Automatically deleted disk for " + dbDisk["username"]
-                    message = (
-                        "The monitor webserver has automatically deleted disk "
-                        + dbDisk["disk_name"]
-                        + " for user "
-                        + dbDisk["username"]
-                    )
-                    internal_message = SendGridMail(
-                        from_email="noreply@fractalcomputers.com",
-                        to_emails=["support@fractalcomputers.com"],
-                        subject=title,
-                        html_content=message,
-                    )
-                    response = sg.send(internal_message)
+                    if dbDisk["username"]:
+                        title = "Automatically deleted disk for " + dbDisk["username"]
+                        message = (
+                            "The monitor webserver has automatically deleted disk "
+                            + dbDisk["disk_name"]
+                            + " for user "
+                            + dbDisk["username"]
+                        )
+                        internal_message = SendGridMail(
+                            from_email="noreply@fractalcomputers.com",
+                            to_emails=["support@fractalcomputers.com"],
+                            subject=title,
+                            html_content=message,
+                        )
+                        response = sg.send(internal_message)
 
-                    # Send email to user
-                    currPath = os.path.abspath(os.path.dirname(sys.argv[0]))
-                    path = os.path.join(currPath, "templates/disk_deleted.txt")
-                    with open(path, "r") as template:
-                        templateData = template.read()
+                        # Send email to user
+                        currPath = os.path.abspath(os.path.dirname(sys.argv[0]))
+                        path = os.path.join(currPath, "templates/disk_deleted.txt")
+                        with open(path, "r") as template:
+                            templateData = template.read()
 
-                    title = "Your cloud PC has automatically been deleted"
-                    internal_message = SendGridMail(
-                        from_email="noreply@fractalcomputers.com",
-                        to_emails=[dbDisk["username"]],
-                        subject=title,
-                        html_content=templateData,
-                    )
-                    response = sg.send(internal_message)
+                        title = "Your cloud PC has automatically been deleted"
+                        internal_message = SendGridMail(
+                            from_email="noreply@fractalcomputers.com",
+                            to_emails=[dbDisk["username"]],
+                            subject=title,
+                            html_content=templateData,
+                        )
+                        response = sg.send(internal_message)
 
         except:
             reportError("Disk monitor for disk " + dbDisk["disk_name"])
@@ -276,6 +278,13 @@ def manageRegions(devEnv):
 
     # TODO: Add region support
     for operatingSystem in VM_OS:
+        # print(
+        #     devEnv
+        #     + " "
+        #     + operatingSystem
+        #     + " "
+        #     + str(REGION_THRESHOLD[devEnv][operatingSystem])
+        # )
         if REGION_THRESHOLD[devEnv][operatingSystem] > 0:
             for location in REGIONS:
                 try:
@@ -286,6 +295,7 @@ def manageRegions(devEnv):
                         not availableVms
                         or len(availableVms) < REGION_THRESHOLD[devEnv][operatingSystem]
                     ):
+                        print("less than!" + devEnv + operatingSystem + location)
                         deallocVms = getVMLocationState(
                             location, "DEALLOCATED", operatingSystem, devEnv
                         )
@@ -362,7 +372,8 @@ def nightToggle(devEnv):
                 REGION_THRESHOLD[devEnv][system] = 0
             vms = fetchDevVms(devEnv)
             for vm in vms:
-                deallocVm(vm["vm_name"], devEnv)
+                if vm["vm_name"] != "tightcherry1090":
+                    deallocVm(vm["vm_name"], devEnv)
             TEST_SHUTOFF = True
     elif TEST_SHUTOFF:
         sendInfo("Resuming region management")
