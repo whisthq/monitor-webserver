@@ -117,12 +117,14 @@ def monitorVMs(devEnv):
                     if not vm["last_updated"]:
                         shutdown = True
                     else:
+                        now = datetime.now()
                         lastActive = datetime.strptime(
                             vm["last_updated"], "%m/%d/%Y, %H:%M"
                         )
-                        now = datetime.now()
+                        readyConnect = datetime.fromtimestamp(vm["ready_to_connect"])
                         if (
                             timedelta(minutes=30) <= now - lastActive
+                            and timedelta(minutes=30) <= now - readyConnect
                             and vm["state"] == "RUNNING_AVAILABLE"
                         ):
                             shutdown = True
