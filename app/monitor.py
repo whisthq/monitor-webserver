@@ -23,7 +23,7 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 # Threshold for min number of available VMs per region and OS
 REGION_THRESHOLD = {
     "staging": {"Windows": 0, "Linux": 0},
-    "prod": {"Windows": 1, "Linux": 0},
+    "prod": {"Windows": 1, "Linux": 1},
 }
 # The regions we care about
 REGIONS = ["eastus", "northcentralus", "southcentralus"]
