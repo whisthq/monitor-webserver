@@ -52,14 +52,16 @@ def monitorVMs(devEnv):
     global timesDeallocated
     freeVmsByRegion = {}
     for region in REGIONS:
-        linuxVms = getVMLocationState(
-            location=region, state="RUNNING_AVAILABLE", devEnv=devEnv, operatingSys="Linux"
+        for os in VM_OS:
+        vms = getVMLocationState(
+            location=region, state="RUNNING_AVAILABLE", devEnv=devEnv, operatingSys=os
         )
-        windowsVms = getVMLocationState(
-            location=region, state="RUNNING_AVAILABLE", devEnv=devEnv, operatingSys="Windows"
-        )
-        
-        freeVmsByRegion[region] = {"Linux": 0 if not linuxVms else len(linuxVms), "Windows":0 not windowsVms else len(windowsVms)}
+        if vms:
+            freeVmsByRegion[region][os] = len(vms)
+        else:
+            freeVmsByRegion[region][os] = 0
+
+    print(freeVmsByRegion)
        
 
     vms = fetchAllVms(devEnv)
