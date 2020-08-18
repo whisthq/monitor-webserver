@@ -53,16 +53,18 @@ def monitorVMs(devEnv):
     freeVmsByRegion = {}
     for region in REGIONS:
         for os in VM_OS:
-        vms = getVMLocationState(
-            location=region, state="RUNNING_AVAILABLE", devEnv=devEnv, operatingSys=os
-        )
-        if vms:
-            freeVmsByRegion[region][os] = len(vms)
-        else:
-            freeVmsByRegion[region][os] = 0
+            vms = getVMLocationState(
+                location=region,
+                state="RUNNING_AVAILABLE",
+                devEnv=devEnv,
+                operatingSys=os,
+            )
+            if vms:
+                freeVmsByRegion[region][os] = len(vms)
+            else:
+                freeVmsByRegion[region][os] = 0
 
     print(freeVmsByRegion)
-       
 
     vms = fetchAllVms(devEnv)
 
