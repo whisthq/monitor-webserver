@@ -50,7 +50,7 @@ def monitorVMs(devEnv):
     )
 
     global timesDeallocated
-    freeVmsByRegion = {}
+    freeVmsByRegion = {"eastus": {}, "northcentralus": {}, "southcentralus": {}}
     for region in REGIONS:
         for vm_os in VM_OS:
             vms = getVMLocationState(
