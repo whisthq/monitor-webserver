@@ -64,8 +64,6 @@ def monitorVMs(devEnv):
             else:
                 freeVmsByRegion[region][vm_os] = 0
 
-    print(freeVmsByRegion)
-
     vms = fetchAllVms(devEnv)
 
     azureVms = []
