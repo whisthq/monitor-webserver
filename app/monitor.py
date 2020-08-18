@@ -57,7 +57,7 @@ def monitorVMs(devEnv):
                 location=region,
                 state="RUNNING_AVAILABLE",
                 devEnv=devEnv,
-                operatingSys=os,
+                operatingSys=vm_os,
             )
             if vms:
                 freeVmsByRegion[region][vm_os] = len(vms)
