@@ -145,6 +145,10 @@ def monitorVMs(devEnv):
                     ):
                         shutdown = False
 
+                    # Temporary code to ignore Linux VMs for now
+                    # if vm["os"] == "Linux":
+                    #     shutdown = False
+
                     if shutdown:
                         deallocVm(vm["vm_name"], devEnv)
                         if devEnv == "prod":
