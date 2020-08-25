@@ -23,7 +23,7 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 # Threshold for min number of available VMs per region and OS
 REGION_THRESHOLD = {
     "staging": {"Windows": 0, "Linux": 0},
-    "prod": {"Windows": 1, "Linux": 0},
+    "prod": {"Windows": 1, "Linux": 1},
 }
 # The regions we care about
 REGIONS = ["eastus", "northcentralus", "southcentralus"]
@@ -50,15 +50,19 @@ def monitorVMs(devEnv):
     )
 
     global timesDeallocated
-    freeVmsByRegion = {}
+    freeVmsByRegion = {"eastus": {}, "northcentralus": {}, "southcentralus": {}}
     for region in REGIONS:
-        regionVms = getVMLocationState(
-            location=region, state="RUNNING_AVAILABLE", devEnv=devEnv
-        )
-        if not regionVms:
-            freeVmsByRegion[region] = 0
-        else:
-            freeVmsByRegion[region] = len(regionVms)
+        for vm_os in VM_OS:
+            vms = getVMLocationState(
+                location=region,
+                state="RUNNING_AVAILABLE",
+                devEnv=devEnv,
+                operatingSys=vm_os,
+            )
+            if vms:
+                freeVmsByRegion[region][vm_os] = len(vms)
+            else:
+                freeVmsByRegion[region][vm_os] = 0
 
     vms = fetchAllVms(devEnv)
 
@@ -117,12 +121,14 @@ def monitorVMs(devEnv):
                     if not vm["last_updated"]:
                         shutdown = True
                     else:
+                        now = datetime.now()
                         lastActive = datetime.strptime(
                             vm["last_updated"], "%m/%d/%Y, %H:%M"
                         )
-                        now = datetime.now()
+                        readyConnect = datetime.fromtimestamp(vm["ready_to_connect"])
                         if (
                             timedelta(minutes=30) <= now - lastActive
+                            and timedelta(minutes=30) <= now - readyConnect
                             and vm["state"] == "RUNNING_AVAILABLE"
                         ):
                             shutdown = True
@@ -138,10 +144,14 @@ def monitorVMs(devEnv):
 
                     if (
                         vm["location"] in freeVmsByRegion
-                        and freeVmsByRegion[vm["location"]]
+                        and freeVmsByRegion[vm["location"]][vm["os"]]
                         <= REGION_THRESHOLD[devEnv][vm["os"]]
                     ):
                         shutdown = False
+
+                    # Temporary code to ignore Linux VMs for now
+                    # if vm["os"] == "Linux":
+                    #     shutdown = False
 
                     if shutdown:
                         deallocVm(vm["vm_name"], devEnv)
@@ -351,12 +361,16 @@ def monitorLogs(devEnv):
 
     sendDebug("Monitoring " + devEnv + " logs...")
 
-    thirtyDaysAgo = (datetime.now() - timedelta(days=30)).strftime("%m/%d/%Y, %H:%M")
+    thirtyDaysAgo = datetime.now() - timedelta(days=30)
 
-    sqlLogs = fetchExpiredLogs(thirtyDaysAgo, devEnv)
+    sqlLogs = fetchLogs(devEnv)
     if sqlLogs:
         for log in sqlLogs:
-            deleteLogsInS3(log["connection_id"], devEnv)
+            if (
+                datetime.strptime(log["last_updated"], "%m/%d/%Y, %H:%M")
+                < thirtyDaysAgo
+            ):
+                deleteLogsInS3(log, devEnv)
 
 
 def nightToggle(devEnv):

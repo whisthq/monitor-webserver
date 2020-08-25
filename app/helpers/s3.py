@@ -3,7 +3,7 @@ from app.logger import *
 from app.helpers.sql import *
 
 
-def deleteLogsInS3(connection_id, devEnv="prod"):
+def deleteLogsInS3(log, devEnv="prod"):
     def S3Delete(file_name):
         bucket = "fractal-protocol-logs"
 
@@ -36,32 +36,24 @@ def deleteLogsInS3(connection_id, devEnv="prod"):
     ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
 
     with ENGINE.connect() as conn:
-        command = text(
-            """
-			SELECT * FROM logs WHERE "connection_id" = :connection_id
-			"""
-        )
-
-        params = {"connection_id": connection_id}
-        logs_found = (cleanFetchedSQL(conn.execute(command, **params).fetchall()))[0]
         success_serverlogs = None
 
         # delete server log for this connection ID
-        if logs_found["server_logs"]:
-            success_serverlogs = S3Delete(logs_found["server_logs"])
+        if log["server_logs"]:
+            success_serverlogs = S3Delete(log["server_logs"])
             if success_serverlogs:
-                sendInfo("Successfully deleted log: " + str(logs_found["server_logs"]))
+                sendInfo("Successfully deleted log: " + str(log["server_logs"]))
             else:
-                sendInfo("Could not delete log: " + str(logs_found["server_logs"]))
+                sendInfo("Could not delete log: " + str(log["server_logs"]))
 
         # delete the client logs
-        if logs_found["client_logs"]:
+        if log["client_logs"]:
             # sendInfo(logs_found["client_logs"])
-            success_clientlogs = S3Delete(logs_found["client_logs"])
+            success_clientlogs = S3Delete(log["client_logs"])
             if success_clientlogs:
-                sendInfo("Successfully deleted log: " + str(logs_found["client_logs"]))
+                sendInfo("Successfully deleted log: " + str(log["client_logs"]))
             else:
-                sendInfo("Could not delete log: " + str(logs_found["client_logs"]))
+                sendInfo("Could not delete log: " + str(log["client_logs"]))
 
         command = text(
             """
@@ -69,7 +61,7 @@ def deleteLogsInS3(connection_id, devEnv="prod"):
 			"""
         )
 
-        params = {"connection_id": connection_id}
+        params = {"connection_id": log["connection_id"]}
         conn.execute(command, **params)
 
         conn.close()
