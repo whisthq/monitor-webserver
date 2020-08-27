@@ -45,12 +45,12 @@ def test_updateVMIP():
     assert True
 
 
-def updateVMLocation(vm_name, location):
+def test_updateVMLocation(vm_name, location):
     # can't really be unit tested
     assert True
 
 
-def updateVMOS(vm_name, operating_system):
+def test_updateVMOS(vm_name, operating_system):
     # can't really be unit tested
     assert True
 
@@ -75,6 +75,6 @@ def test_genVMName():
     assert isinstance(genVMName(), str)
 
 
-def createNic(name, location, tries):
+def test_createNic(name, location, tries):
     # can't really be unit tested
     assert True

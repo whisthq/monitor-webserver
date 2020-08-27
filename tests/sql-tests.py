@@ -56,6 +56,7 @@ def test_getVMLocationState():
     # assert isinstance(getVMLocationState("southcentralus", "RUNNING_AVAILABLE"), list)
     assert True
 
+
 def test_addReportTable():
     # can't really be unit tested
     assert True

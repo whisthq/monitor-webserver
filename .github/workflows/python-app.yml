@@ -30,7 +30,9 @@ jobs:
         
       - name: Run unit tests with pytest
         run: |
+          pytest tests/utils-tests.py
           pytest tests/logger-tests.py
           pytest tests/sql-tests.py
           pytest tests/vms-tests.py
+          pytest tests/s3-tests.py
           pytest tests/monitor-tests.py
