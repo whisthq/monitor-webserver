@@ -4,6 +4,15 @@ from app.helpers.sql import *
 
 
 def deleteLogsInS3(log, devEnv="prod"):
+    """
+
+    Args:
+        log ()
+        devEnv (string):
+
+    """
+
+
     def S3Delete(file_name):
         bucket = "fractal-protocol-logs"
 
@@ -46,7 +55,7 @@ def deleteLogsInS3(log, devEnv="prod"):
             else:
                 sendInfo("Could not delete log: " + str(log["server_logs"]))
 
-        # delete the client logs
+        # delete client logs
         if log["client_logs"]:
             # sendInfo(logs_found["client_logs"])
             success_clientlogs = S3Delete(log["client_logs"])

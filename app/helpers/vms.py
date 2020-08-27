@@ -72,7 +72,7 @@ def waitForWinlogon(vm_name):
         return 1
 
     while not ready:
-        sendWarning("Waiting for VM {} to Winlogon".format(vm_name))
+        sendInfo("Waiting for VM {} to Winlogon".format(vm_name))
         time.sleep(5)
         ready = checkWinlogon(vm_name)
         num_tries += 1
@@ -115,7 +115,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
             try:
                 power_state = vm_state.statuses[1].code
             except Exception as e:
-                sendCritical(str(e))
+                sendError(str(e))
                 pass
 
             if "stop" in power_state or "dealloc" in power_state:
@@ -344,7 +344,7 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
         return 1
     except Exception as e:
-        sendCritical(str(e))
+        sendError(str(e))
         return -1
 
 
@@ -418,7 +418,7 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=False):
             return 1
 
         while not "running" in vm_state.statuses[1].code and wake_retries < 12:
-            sendWarning(
+            sendInfo(
                 "VM state is currently in state {}, sleeping for 5 seconds and querying state again".format(
                     vm_state.statuses[1].code
                 ),
