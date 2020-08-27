@@ -5,6 +5,7 @@ from app.utils import (
     unixToDate,
 )
 
+from app.imports import datetime
 
 def test_dateToUnix():
     assert isinstance(dateToUnix(getToday()), int)
