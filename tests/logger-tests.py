@@ -1,4 +1,4 @@
-from app.logger import sendDebug, sendInfo, sendError, sendCritical
+from app.logger import sendDebug, sendInfo, sendError
 
 
 def test_sendDebug():
