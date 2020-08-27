@@ -16,9 +16,7 @@ def test_getToday():
 
 
 def test_shiftUnixByMinutes():
-    assert shiftUnixByMinutes(dateToUnix(getToday()), 60) == (
-        int(dateToUnix(getToday())) + 60
-    )
+    assert isinstance(shiftUnixByMinutes(dateToUnix(getToday()), 60), int)
 
 
 def test_unixToDate():
