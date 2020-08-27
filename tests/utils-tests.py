@@ -6,7 +6,7 @@ from app.utils import (
 )
 
 
-def test_dateToUnix(date):
+def test_dateToUnix():
     assert isinstance(dateToUnix(getToday()), int)
 
 
@@ -14,11 +14,11 @@ def test_getToday():
     assert isinstance(getToday(), datetime.date)
 
 
-def test_shiftUnixByMinutes(utc, num_minutes):
+def test_shiftUnixByMinutes():
     assert shiftUnixByMinutes(dateToUnix(getToday()), 60) == (
         int(dateToUnix(getToday())) + 60
     )
 
 
-def test_unixToDate(utc):
+def test_unixToDate():
     assert isinstance(unixToDate(dateToUnix(getToday())), datetime.date)
