@@ -1,4 +1,5 @@
 from app.helpers.vms import (
+    checkDev,
     sendVMStartCommand,
     fractalVMStart,
     createVMParameters,
@@ -13,6 +14,16 @@ from app.helpers.vms import (
     genVMName,
     createNic,
 )
+
+
+def test_checkDev():
+    # can't really be unit tested
+    assert True
+
+
+def test_waitForWinlogon():
+    # can't really be unit tested
+    assert True
 
 
 def test_sendVMStartCommand():

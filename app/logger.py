@@ -30,7 +30,7 @@ def sendDebug(log):
         N/A
     """
     print("DEBUG: " + str(log), file=sys.stdout)
-    return
+    return None
 
 
 def sendInfo(log):
@@ -40,7 +40,7 @@ def sendInfo(log):
         N/A
     # """
     print("INFO: " + str(log), file=sys.stdout)
-    return
+    return None
 
 
 def sendError(log):
@@ -50,4 +50,4 @@ def sendError(log):
         N/A
     """
     print("ERROR: " + str(log), file=sys.stderr)
-    return
+    return None

@@ -1,5 +1,5 @@
 from app.imports import *
-from app.logger import *
+from app.logger import sendInfo, sendDebug, sendError
 from app.helpers.sql import *
 
 
@@ -11,7 +11,6 @@ def deleteLogsInS3(log, devEnv="prod"):
         devEnv (string):
 
     """
-
 
     def S3Delete(file_name):
         bucket = "fractal-protocol-logs"

@@ -7,6 +7,7 @@ from app.utils import (
 
 import datetime
 
+
 def test_dateToUnix():
     assert isinstance(dateToUnix(getToday()), int)
 

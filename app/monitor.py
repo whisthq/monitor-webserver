@@ -42,7 +42,7 @@ def monitorVMs(devEnv):
        Also updates the database state.
 
     Args:
-        staging (bool): Whether to monitor staging or prod db
+        devEnv (bool): Whether to monitor staging or prod db
     """
     sendDebug("Monitoring " + devEnv + " VMs...")
     azureGroup = (
@@ -172,7 +172,7 @@ def monitorDisks(devEnv):
        Also deletes disks for trial users that haven't paid and had a trial expire over 7 days ago.
 
     Args:
-        staging (bool): Whether to monitor staging or prod db
+        devEnv (bool): Whether to monitor staging or prod db
     """
     sendDebug("Monitoring " + devEnv + " disks...")
 
@@ -279,7 +279,7 @@ def manageRegions(devEnv):
     """Increases available VMs for a region if the # of available VMs dips below a threshold
 
     Args:
-        staging (bool): Whether to monitor staging or prod db
+        devEnv (bool): Whether to monitor staging or prod db
     """
     sendDebug("Monitoring " + devEnv + " regions...")
     azureGroup = (
@@ -375,6 +375,9 @@ def monitorLogs(devEnv):
 
 def nightToggle(devEnv):
     """Shuts off dev vms and region management between times EST 1am -> 7am in prod db
+
+    Args:
+        devEnv (str): Dev environment
     """
     # TODO: Add support for both dbs
     global TEST_SHUTOFF
@@ -396,6 +399,8 @@ def nightToggle(devEnv):
 
 
 def monitorThread():
+    """Monitors all the threads defined above on the production environment
+    """
     # on-off toggle for running the monitor server based on Heroku config var
     while os.getenv("RUNNING"):
         nightToggle("prod")
@@ -407,6 +412,8 @@ def monitorThread():
 
 
 def stagingMonitorThread():
+    """Monitors all the threads defined above on the staging environment
+    """
     # on-off toggle for running the monitor server based on Heroku config var
     while os.getenv("RUNNING"):
         monitorVMs("staging")
@@ -417,6 +424,8 @@ def stagingMonitorThread():
 
 
 def reportThread():
+    """Grab data from the monitored thread for our analytics dashboard in admin-dashboard
+    """
     global timesDeallocated
     # on-off toggle for running the monitor server based on Heroku config var
     while os.getenv("RUNNING"):
