@@ -29,31 +29,25 @@ def sendDebug(log):
     Args:
         N/A
     """
-    print(
-        "DEBUG: " + str(log), file=sys.stdout,
-    )
+    print("DEBUG: " + str(log), file=sys.stdout)
     return None
 
 
 def sendInfo(log):
     """Logs info messages
 
-    Args:
-        N/A
+    Returns:
+        None: Returns None, always
     # """
-    print(
-        "INFO: " + str(log), file=sys.stdout,
-    )
+    print("INFO: " + str(log), file=sys.stdout)
     return None
 
 
 def sendError(log):
     """Logs errors
 
-    Args:
-        N/A
+    Returns:
+        None: Returns None, always
     """
-    print(
-        "ERROR: " + str(log), file=sys.stderr,
-    )
+    print("ERROR: " + str(log), file=sys.stderr)
     return None

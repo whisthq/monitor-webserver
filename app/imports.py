@@ -1,11 +1,7 @@
 import time
 import threading
 import traceback
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 import os, sys
 import sqlalchemy
