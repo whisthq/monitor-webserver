@@ -4,7 +4,7 @@ name: Python Webserver CI
 
 on:
   pull_request:
-    branches: [ master, staging ]
+    branches: [ master ]
 
 jobs:
   build:
