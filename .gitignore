@@ -1,7 +1,15 @@
+# Bash
 .bashrc
-log.txt
-venv/
-__pycache__/
-env/
-.pytest_cache/
+
+# VSCode
 .vscode
+
+# Python
+venv/
+env/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Fractal
+log.txt

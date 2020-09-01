@@ -1,6 +1,10 @@
 from app.helpers.vms import (
+    checkDev,
+    waitForWinlogon,
     sendVMStartCommand,
+    deallocVm,
     fractalVMStart,
+    getVM,
     createVMParameters,
     createVM,
     getIP,
@@ -15,7 +19,21 @@ from app.helpers.vms import (
 )
 
 
+def test_checkDev():
+    assert checkDev("dev-nv6") == True  # Nick's VM
+
+
+def test_waitForWinlogon():
+    # can't really be unit tested
+    assert True
+
+
 def test_sendVMStartCommand():
+    # can't really be unit tested
+    assert True
+
+
+def test_deallocVm():
     # can't really be unit tested
     assert True
 
@@ -23,6 +41,10 @@ def test_sendVMStartCommand():
 def test_fractalVMStart():
     # can't really be unit tested
     assert True
+
+
+def test_getVM():
+    assert getVM("dev-nv6") != None  # Nick's VM
 
 
 def test_createVMParameters():
@@ -36,8 +58,7 @@ def test_createVM():
 
 
 def test_getIP():
-    # assert isinstance(getIP(getVM("dev-nv6")), str)
-    assert True
+    assert isinstance(getIP(getVM("dev-nv6")), str)  # Nick's VM
 
 
 def test_updateVMIP():
@@ -45,19 +66,18 @@ def test_updateVMIP():
     assert True
 
 
-def updateVMLocation(vm_name, location):
+def test_updateVMLocation():
     # can't really be unit tested
     assert True
 
 
-def updateVMOS(vm_name, operating_system):
+def test_updateVMOS():
     # can't really be unit tested
     assert True
 
 
 def test_fetchVMCredentials():
-    # assert isinstance(fetchVMCredentials("dev-nv6"), dict)
-    assert True
+    assert isinstance(fetchVMCredentials("dev-nv6"), dict,)  # Nick's VM
 
 
 def test_lockVMAndUpdate():
@@ -75,6 +95,6 @@ def test_genVMName():
     assert isinstance(genVMName(), str)
 
 
-def createNic(name, location, tries):
+def test_createNic():
     # can't really be unit tested
     assert True

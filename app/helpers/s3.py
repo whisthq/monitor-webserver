@@ -1,16 +1,28 @@
 from app.imports import *
-from app.logger import *
+from app.logger import (
+    sendInfo,
+    sendDebug,
+    sendError,
+)
 from app.helpers.sql import *
 
 
 def deleteLogsInS3(log, devEnv="prod"):
+    """Delete a specified log file in AWS S3
+
+    Args:
+        log (JSON): JSON object of a protocol log file
+        devEnv (string): production or staging
+
+    Returns:
+        int: 1 if successfully deleted log, else -1
+    """
+
     def S3Delete(file_name):
         bucket = "fractal-protocol-logs"
 
         # remove url, keep filename only
-        file_name = file_name.replace(
-            "https://fractal-protocol-logs.s3.amazonaws.com/", ""
-        )
+        file_name = file_name.replace("https://fractal-protocol-logs.s3.amazonaws.com/", "",)
 
         s3 = boto3.resource(
             "s3",
@@ -27,13 +39,9 @@ def deleteLogsInS3(log, devEnv="prod"):
             sendError("Error deleting log: " + str(e))
             return False
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
 
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     with ENGINE.connect() as conn:
         success_serverlogs = None
@@ -46,7 +54,7 @@ def deleteLogsInS3(log, devEnv="prod"):
             else:
                 sendInfo("Could not delete log: " + str(log["server_logs"]))
 
-        # delete the client logs
+        # delete client logs
         if log["client_logs"]:
             # sendInfo(logs_found["client_logs"])
             success_clientlogs = S3Delete(log["client_logs"])

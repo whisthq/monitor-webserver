@@ -65,7 +65,7 @@ Installation:
 Black can be installed by running `pip install black`. It requires Python 3.6.0+ to run but you can reformat Python 2 code with it, too.
 
 Usage:  
-To get started right away with sensible defaults:
+To get started right away with the project's Black settings listed in `pyproject.toml`:
 
 ```
 black {source_file_or_directory}
