@@ -3,9 +3,7 @@ from app.logger import *
 from app.utils import *
 
 # Create db engine object
-ENGINE = sqlalchemy.create_engine(
-    os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True
-)
+ENGINE = sqlalchemy.create_engine(os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True,)
 
 # Get Azure clients
 subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
@@ -46,13 +44,9 @@ def checkWinlogon(vm_name, devEnv="prod"):
     Returns:
         bool: True if vm is ready to connect
     """
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
 
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -78,13 +72,9 @@ def createTemporaryLock(vm_name, minutes, devEnv="prod"):
         ID (int, optional): Papertrail logging ID. Defaults to -1.
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
 
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     temporary_lock = shiftUnixByMinutes(dateToUnix(getToday()), minutes)
 
@@ -97,15 +87,16 @@ def createTemporaryLock(vm_name, minutes, devEnv="prod"):
         """
     )
 
-    params = {"vm_name": vm_name, "temporary_lock": temporary_lock}
+    params = {
+        "vm_name": vm_name,
+        "temporary_lock": temporary_lock,
+    }
 
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
 
-    sendInfo(
-        "Temporary lock created for VM {} for {} minutes".format(vm_name, str(minutes)),
-    )
+    sendInfo("Temporary lock created for VM {} for {} minutes".format(vm_name, str(minutes)),)
 
 
 def vmReadyToConnect(vm_name, ready, devEnv="prod"):
@@ -115,13 +106,9 @@ def vmReadyToConnect(vm_name, ready, devEnv="prod"):
         vm_name (str): Name of the vm
         ready (boolean): True for ready to connect
     """
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
 
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     if ready:
         current = dateToUnix(getToday())
@@ -134,7 +121,10 @@ def vmReadyToConnect(vm_name, ready, devEnv="prod"):
             "vm_name" = :vm_name
             """
         )
-        params = {"vm_name": vm_name, "current": current}
+        params = {
+            "vm_name": vm_name,
+            "current": current,
+        }
 
         with ENGINE.connect() as conn:
             conn.execute(command, **params)
@@ -167,12 +157,8 @@ def fetchAllVms(devEnv="prod"):
         list: List of all vms
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -193,12 +179,8 @@ def fetchDevVms(devEnv="prod"):
         Arr[obj]: An array of the vm names
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -224,12 +206,8 @@ def updateVMState(vm_name, state, devEnv="prod"):
     """
     sendInfo("Updating state for VM " + vm_name + " to " + state)
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -239,7 +217,10 @@ def updateVMState(vm_name, state, devEnv="prod"):
            "vm_name" = :vm_name
         """
     )
-    params = {"vm_name": vm_name, "state": state}
+    params = {
+        "vm_name": vm_name,
+        "state": state,
+    }
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -254,13 +235,9 @@ def updateDiskState(disk_name, state, devEnv="prod"):
     """
     sendInfo("Updating state for disk " + disk_name + " to " + state)
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
 
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -270,7 +247,10 @@ def updateDiskState(disk_name, state, devEnv="prod"):
         "disk_name" = :disk_name
         """
     )
-    params = {"state": state, "disk_name": disk_name}
+    params = {
+        "state": state,
+        "disk_name": disk_name,
+    }
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -286,13 +266,9 @@ def getMostRecentActivity(username, devEnv="prod"):
     Returns:
         dict: The latest activity of the user
     """
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
 
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -317,13 +293,8 @@ def lockVM(vm_name, lock, devEnv="prod"):
         vm_name (str): The name of the vm to lock
         lock (bool): True for lock
     """
-
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     if lock:
         sendInfo("Locking VM " + vm_name)
@@ -339,7 +310,11 @@ def lockVM(vm_name, lock, devEnv="prod"):
         """
     )
     last_updated = datetime.now().strftime("%m/%d/%Y, %H:%M")
-    params = {"vm_name": vm_name, "lock": lock, "last_updated": last_updated}
+    params = {
+        "vm_name": vm_name,
+        "lock": lock,
+        "last_updated": last_updated,
+    }
     with ENGINE.connect() as conn:
         conn.execute(command, **params)
         conn.close()
@@ -352,12 +327,8 @@ def fetchAllDisks(devEnv="prod"):
         arr[dict]: An array of all the disks in the disks sql table
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -378,12 +349,8 @@ def fetchDiskByUser(username, devEnv="prod"):
         arr[dict]: An array of all the disks in the disks sql table
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -404,12 +371,8 @@ def deleteDiskFromTable(disk_name, devEnv="prod"):
     Args:
         disk_name (str): The name of the disk to delete
     """
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -429,12 +392,8 @@ def deleteVmFromTable(vm_name, devEnv="prod"):
         vm_name (str): The name of the vm to delete
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -459,12 +418,8 @@ def getVMLocationState(location, state, operatingSys=None, devEnv="prod"):
     Returns:
         array: An array of all vms that satisfy the query
     """
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     nowTime = round(datetime.now().timestamp())
 
@@ -500,9 +455,7 @@ def getVMLocationState(location, state, operatingSys=None, devEnv="prod"):
         return vms
 
 
-def addReportTable(
-    ts, totalDealloc, logons, logoffs, vms, users, liveUsers, devEnv="prod"
-):
+def addReportTable(ts, totalDealloc, logons, logoffs, vms, users, liveUsers, devEnv="prod"):
     """Counts statistics of the whole Fractal system
     
     Args:
@@ -514,12 +467,8 @@ def addReportTable(
         users (int): Total number of users across the whole system
         liveUsers (int): Total number of users currently logged on
     """
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -562,12 +511,8 @@ def getLogons(timestamp, action, devEnv="prod"):
         int: The # of actions
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -577,7 +522,10 @@ def getLogons(timestamp, action, devEnv="prod"):
         """
     )
 
-    params = {"timestamp": timestamp, "action": action}
+    params = {
+        "timestamp": timestamp,
+        "action": action,
+    }
 
     with ENGINE.connect() as conn:
         activity = cleanFetchedSQL(conn.execute(command, **params).fetchone())
@@ -591,12 +539,8 @@ def fetchLogs(devEnv="prod"):
         arr[dict]: An array of all the logs in the logs sql table
     """
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """
@@ -611,14 +555,18 @@ def fetchLogs(devEnv="prod"):
 
 
 def fetchStingyCustomers(devEnv="prod"):
+    """Fetch the customers whose free trial has expired and haven't paid
+
+    Args:
+        devEnv (str): The environment to run in, production or staging
+
+    Returns:
+        list: List of customers whose free trial has expired and haven't paid
+    """
     aWeekAgo = datetime.timestamp(datetime.now() - timedelta(days=7))
 
-    dbUrl = (
-        os.getenv("STAGING_DATABASE_URL")
-        if devEnv == "staging"
-        else os.getenv("DATABASE_URL")
-    )
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True)
+    dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
+    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
 
     command = text(
         """

@@ -29,7 +29,9 @@ def sendDebug(log):
     Args:
         N/A
     """
-    print("DEBUG: " + str(log), file=sys.stdout)
+    print(
+        "DEBUG: " + str(log), file=sys.stdout,
+    )
     return None
 
 
@@ -39,7 +41,9 @@ def sendInfo(log):
     Args:
         N/A
     # """
-    print("INFO: " + str(log), file=sys.stdout)
+    print(
+        "INFO: " + str(log), file=sys.stdout,
+    )
     return None
 
 
@@ -49,5 +53,7 @@ def sendError(log):
     Args:
         N/A
     """
-    print("ERROR: " + str(log), file=sys.stderr)
+    print(
+        "ERROR: " + str(log), file=sys.stderr,
+    )
     return None

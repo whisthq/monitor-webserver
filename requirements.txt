@@ -1,4 +1,3 @@
-wheel
 msrest
 msrestazure
 azure-common
