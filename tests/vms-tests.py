@@ -17,8 +17,7 @@ from app.helpers.vms import (
 
 
 def test_checkDev():
-    # can't really be unit tested
-    assert True
+    assert checkDev("dev-nv6") == True  # Nick's VM
 
 
 def test_waitForWinlogon():
@@ -31,7 +30,17 @@ def test_sendVMStartCommand():
     assert True
 
 
+def test_deallocVm():
+    # can't really be unit tested
+    assert True
+
+
 def test_fractalVMStart():
+    # can't really be unit tested
+    assert True
+
+
+def test_getVM():
     # can't really be unit tested
     assert True
 
@@ -67,8 +76,7 @@ def test_updateVMOS(vm_name, operating_system):
 
 
 def test_fetchVMCredentials():
-    # assert isinstance(fetchVMCredentials("dev-nv6"), dict)
-    assert True
+    assert isinstance(fetchVMCredentials("dev-nv6"), dict)
 
 
 def test_lockVMAndUpdate():

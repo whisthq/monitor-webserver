@@ -545,7 +545,7 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Wind
 
 
 def createVM(vm_size, location, operating_system, devEnv="prod"):
-    """Creates a windows vm of size vm_size in Azure region location
+    """Creates a VM of size vm_size and OS operation_system in Azure region location
 
 	Args:
 		vm_size (str): The size of the vm to create
@@ -752,6 +752,17 @@ def fetchVMCredentials(vm_name):
 
 
 def lockVMAndUpdate(vm_name, state, lock, temporary_lock, change_last_updated, verbose):
+    """Lock a VM and update its state
+
+    Args:
+        vm_name (str): The name of the VM to lock and update
+        state (str): State to give it, e.g. "STARTING"
+        lock (bool): True if VM is/should be locked
+        temporary_lock (int): Number of seconds to set a temporary lock on
+        change_last_updated (bool): Whether to update the last updated timestamp
+
+        verbose (bool): Logging verbosity
+    """
     MAX_LOCK_TIME = 10
 
     command = text(

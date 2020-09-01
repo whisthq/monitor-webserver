@@ -19,6 +19,16 @@ def test_cleanFetchedSQL():
     assert isinstance(fetchAllDisks(), list)
 
 
+def test_checkWinlogon():
+    # can't really be unit tested
+    assert True
+
+
+def createTemporaryLock():
+    # can't really be unit tested
+    assert True
+
+
 def test_reportError():
     assert reportError("TEST SERVICE") == None
 

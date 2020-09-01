@@ -4,12 +4,14 @@ from app.helpers.sql import *
 
 
 def deleteLogsInS3(log, devEnv="prod"):
-    """
+    """Delete a specified log file in AWS S3
 
     Args:
-        log ()
-        devEnv (string):
+        log (JSON): JSON object of a protocol log file
+        devEnv (string): production or staging
 
+    Returns:
+        int: 1 if successfully deleted log, else -1
     """
 
     def S3Delete(file_name):
