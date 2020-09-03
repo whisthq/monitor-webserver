@@ -23,7 +23,7 @@ from app.helpers.sql import (
 
 
 def test_cleanFetchedSQL():
-    assert isinstance(fetchAllDisks(), list) # fetchAllDisks() calls cleanFetchedSQL
+    assert isinstance(fetchAllDisks(), list)  # fetchAllDisks() calls cleanFetchedSQL
 
 
 def test_checkWinlogon():
@@ -94,21 +94,23 @@ def test_deleteDiskFromTable():
 
 def test_updateDiskState():
     # can't really be unit tested
-    assert True    
+    assert True
 
 
 def test_vmReadyToConnect():
     # can't really be unit tested
-    assert True       
- 
+    assert True
+
 
 def test_fetchStingyCustomers():
     assert isinstance(fetchStingyCustomers(devEnv="prod"), list)
 
 
 def test_fetchDiskByUser():
-    assert isinstance(fetchDiskByUser("ming@fractalcomputers.com", devEnv="prod"), list) # real user
-    assert fetchDiskByUser("UNEXISTENT USER", devEnv="prod") == None # unexistent user
+    assert isinstance(
+        fetchDiskByUser("ming@fractalcomputers.com", devEnv="prod"), list
+    )  # real user
+    assert fetchDiskByUser("UNEXISTENT USER", devEnv="prod") == None  # unexistent user
 
 
 def test_fetchDevVms():

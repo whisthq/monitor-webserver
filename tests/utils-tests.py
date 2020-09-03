@@ -17,8 +17,14 @@ def test_getToday():
 
 
 def test_shiftUnixByMinutes():
-    assert isinstance(shiftUnixByMinutes(dateToUnix(getToday()), 60), int,)
+    assert isinstance(
+        shiftUnixByMinutes(dateToUnix(getToday()), 60),
+        int,
+    )
 
 
 def test_unixToDate():
-    assert isinstance(unixToDate(dateToUnix(getToday())), datetime.date,)
+    assert isinstance(
+        unixToDate(dateToUnix(getToday())),
+        datetime.date,
+    )

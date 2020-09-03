@@ -4,7 +4,11 @@ from app.helpers.sql import *
 from app.utils import *
 
 # Create db engine object
-ENGINE = sqlalchemy.create_engine(os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True,)
+ENGINE = sqlalchemy.create_engine(
+    os.getenv("DATABASE_URL"),
+    echo=False,
+    pool_pre_ping=True,
+)
 Session = sessionmaker(bind=ENGINE, autocommit=False)
 
 # Get Azure clients
@@ -79,7 +83,9 @@ def waitForWinlogon(vm_name):
             sendError("Waited too long for winlogon. Sending failure message.")
             return -1
 
-    sendInfo("VM {} has Winlogon successfully after {} tries".format(vm_name, str(num_tries)),)
+    sendInfo(
+        "VM {} has Winlogon successfully after {} tries".format(vm_name, str(num_tries)),
+    )
 
     return 1
 
@@ -100,12 +106,16 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
     try:
 
         def boot_if_necessary(
-            vm_name, needs_restart, ID=-1, s=s,
+            vm_name,
+            needs_restart,
+            ID=-1,
+            s=s,
         ):
 
             power_state = "PowerState/deallocated"
             vm_state = CCLIENT.virtual_machines.instance_view(
-                resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name,
+                resource_group_name=os.getenv("VM_GROUP"),
+                vm_name=vm_name,
             )
 
             try:
@@ -125,7 +135,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
                 sendInfo(
                     "VM {} currently in state {}. Setting Winlogon to False".format(
-                        vm_name, power_state,
+                        vm_name,
+                        power_state,
                     ),
                 )
                 vmReadyToConnect(vm_name, False)
@@ -141,7 +152,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
                 )
 
                 async_vm_start = CCLIENT.virtual_machines.start(
-                    os.environ.get("VM_GROUP"), vm_name,
+                    os.environ.get("VM_GROUP"),
+                    vm_name,
                 )
 
                 createTemporaryLock(vm_name, 12)
@@ -150,7 +162,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
                 if s:
                     s.update_state(
-                        state="PENDING", meta={"msg": "Your cloud PC was started successfully."},
+                        state="PENDING",
+                        meta={"msg": "Your cloud PC was started successfully."},
                     )
 
                 sendInfo("VM {} started successfully".format(vm_name))
@@ -166,7 +179,9 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
                         },
                     )
 
-                sendInfo("VM {} needs to restart. Setting Winlogon to False".format(vm_name),)
+                sendInfo(
+                    "VM {} needs to restart. Setting Winlogon to False".format(vm_name),
+                )
                 vmReadyToConnect(vm_name, False)
 
                 lockVMAndUpdate(
@@ -179,7 +194,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
                 )
 
                 async_vm_restart = CCLIENT.virtual_machines.restart(
-                    os.environ.get("VM_GROUP"), vm_name,
+                    os.environ.get("VM_GROUP"),
+                    vm_name,
                 )
 
                 createTemporaryLock(vm_name, 12)
@@ -188,7 +204,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
                 if s:
                     s.update_state(
-                        state="PENDING", meta={"msg": "Your cloud PC was restarted successfully."},
+                        state="PENDING",
+                        meta={"msg": "Your cloud PC was restarted successfully."},
                     )
 
                 sendInfo("VM {} restarted successfully".format(vm_name))
@@ -206,7 +223,12 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
             params = {"disk_name": disk_name}
 
             with ENGINE.connect() as conn:
-                disk_info = cleanFetchedSQL(conn.execute(command, **params,).fetchone())
+                disk_info = cleanFetchedSQL(
+                    conn.execute(
+                        command,
+                        **params,
+                    ).fetchone()
+                )
                 conn.close()
             if disk_info:
                 return disk_info["first_time"]
@@ -230,7 +252,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
         if s:
             s.update_state(
-                state="PENDING", meta={"msg": "Cloud PC started executing boot request."},
+                state="PENDING",
+                meta={"msg": "Cloud PC started executing boot request."},
             )
 
         disk_name = fetchVMCredentials(vm_name)["disk_name"]
@@ -264,7 +287,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
             if s:
                 s.update_state(
-                    state="PENDING", meta={"msg": "Cloud PC still executing boot request."},
+                    state="PENDING",
+                    meta={"msg": "Cloud PC still executing boot request."},
                 )
 
             boot_if_necessary(vm_name, needs_restart)
@@ -301,7 +325,8 @@ def sendVMStartCommand(vm_name, needs_restart, needs_winlogon, ID=-1, s=None):
 
                 if s:
                     s.update_state(
-                        state="PENDING", meta={"msg": "Logged into your cloud PC successfully."},
+                        state="PENDING",
+                        meta={"msg": "Logged into your cloud PC successfully."},
                     )
 
                 lockVMAndUpdate(
@@ -348,7 +373,11 @@ def deallocVm(vm_name, devEnv="prod"):
     """
     sendInfo("Automatically deallocating VM " + vm_name + "...")
     dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
+    ENGINE = sqlalchemy.create_engine(
+        dbUrl,
+        echo=False,
+        pool_pre_ping=True,
+    )
 
     azureGroup = os.getenv("STAGING_GROUP") if devEnv == "staging" else os.getenv("VM_GROUP")
     async_vm_deallocate = CCLIENT.virtual_machines.deallocate(azureGroup, vm_name)
@@ -379,7 +408,12 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=False):
     while not started and start_attempts < 3:
         start_command_tries = 0
         while (
-            sendVMStartCommand(vm_name, needs_restart, needs_winlogon,) < 0
+            sendVMStartCommand(
+                vm_name,
+                needs_restart,
+                needs_winlogon,
+            )
+            < 0
             and start_command_tries < 6
         ):
             time.sleep(10)
@@ -393,13 +427,15 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=False):
         # After the VM has been started/restarted, query the state. Try 12 times for the state to be running. If it is not running,
         # give up and go to the top of the while loop to send another start/restart command
         vm_state = CCLIENT.virtual_machines.instance_view(
-            resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name,
+            resource_group_name=os.getenv("VM_GROUP"),
+            vm_name=vm_name,
         )
 
         # Success! VM is running and ready to use
         if "running" in vm_state.statuses[1].code:
             updateVMState(
-                vm_name, "RUNNING_AVAILABLE",
+                vm_name,
+                "RUNNING_AVAILABLE",
             )
             sendInfo("Running found in status of VM {}".format(vm_name))
             started = True
@@ -413,16 +449,21 @@ def fractalVMStart(vm_name, needs_restart=False, needs_winlogon=False):
             )
             time.sleep(5)
             vm_state = CCLIENT.virtual_machines.instance_view(
-                resource_group_name=os.getenv("VM_GROUP"), vm_name=vm_name,
+                resource_group_name=os.getenv("VM_GROUP"),
+                vm_name=vm_name,
             )
 
             # Success! VM is running and ready to use
             if "running" in vm_state.statuses[1].code:
                 updateVMState(
-                    vm_name, "RUNNING_AVAILABLE",
+                    vm_name,
+                    "RUNNING_AVAILABLE",
                 )
                 sendInfo(
-                    "VM {} is running. State is {}".format(vm_name, vm_state.statuses[1].code,),
+                    "VM {} is running. State is {}".format(
+                        vm_name,
+                        vm_state.statuses[1].code,
+                    ),
                 )
                 started = True
                 return 1
@@ -444,7 +485,10 @@ def getVM(vm_name):
         VirtualMachine: The virtual machine object (https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/get#virtualmachine)
     """
     try:
-        virtual_machine = CCLIENT.virtual_machines.get(os.getenv("VM_GROUP"), vm_name,)
+        virtual_machine = CCLIENT.virtual_machines.get(
+            os.getenv("VM_GROUP"),
+            vm_name,
+        )
         return virtual_machine
     except:
         return None
@@ -462,7 +506,7 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Wind
 
     Returns:
     dict: Parameters that will be used in Azure sdk
-   """
+    """
 
     with ENGINE.connect() as conn:
         oldUserNames = [cell[0] for cell in list(conn.execute('SELECT "username" FROM v_ms'))]
@@ -519,9 +563,18 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Wind
                             "sku": vm_reference["sku"],
                             "version": vm_reference["version"],
                         },
-                        "os_disk": {"os_type": operating_system, "create_option": "FromImage",},
+                        "os_disk": {
+                            "os_type": operating_system,
+                            "create_option": "FromImage",
+                        },
                     },
-                    "network_profile": {"network_interfaces": [{"id": nic_id,}]},
+                    "network_profile": {
+                        "network_interfaces": [
+                            {
+                                "id": nic_id,
+                            }
+                        ]
+                    },
                 },
                 "vm_name": vmName,
             }
@@ -530,17 +583,19 @@ def createVMParameters(vmName, nic_id, vm_size, location, operating_system="Wind
 def createVM(vm_size, location, operating_system, devEnv="prod"):
     """Creates a VM of size vm_size and OS operation_system in Azure region location
 
-	Args:
-		vm_size (str): The size of the vm to create
-		location (str): The Azure region
+    Args:
+            vm_size (str): The size of the vm to create
+            location (str): The Azure region
 
-	Returns:
-		dict: The dict representing the vm in the v_ms sql table
-	"""
+    Returns:
+            dict: The dict representing the vm in the v_ms sql table
+    """
     # TODO: Add support for create vm for staging db
     sendInfo(
         "Creating VM of size {}, location {}, operating system {}".format(
-            vm_size, location, operating_system,
+            vm_size,
+            location,
+            operating_system,
         ),
     )
 
@@ -549,9 +604,17 @@ def createVM(vm_size, location, operating_system, devEnv="prod"):
     if not nic:
         sendError("Nic does not exist, aborting")
         return
-    vmParameters = createVMParameters(vmName, nic.id, vm_size, location, operating_system,)
+    vmParameters = createVMParameters(
+        vmName,
+        nic.id,
+        vm_size,
+        location,
+        operating_system,
+    )
     async_vm_creation = CCLIENT.virtual_machines.create_or_update(
-        os.environ["VM_GROUP"], vmParameters["vm_name"], vmParameters["params"],
+        os.environ["VM_GROUP"],
+        vmParameters["vm_name"],
+        vmParameters["params"],
     )
     sendDebug("Waiting on async_vm_creation")
     async_vm_creation.wait()
@@ -559,7 +622,8 @@ def createVM(vm_size, location, operating_system, devEnv="prod"):
     time.sleep(10)
 
     async_vm_start = CCLIENT.virtual_machines.start(
-        os.environ["VM_GROUP"], vmParameters["vm_name"],
+        os.environ["VM_GROUP"],
+        vmParameters["vm_name"],
     )
     sendDebug("Waiting on async_vm_start")
     async_vm_start.wait()
@@ -600,17 +664,23 @@ def createVM(vm_size, location, operating_system, devEnv="prod"):
     vm_ip = getIP(vm)
     updateVMIP(vmParameters["vm_name"], vm_ip)
     updateVMState(
-        vmParameters["vm_name"], "RUNNING_AVAILABLE",
+        vmParameters["vm_name"],
+        "RUNNING_AVAILABLE",
     )
     updateVMLocation(
-        vmParameters["vm_name"], location,
+        vmParameters["vm_name"],
+        location,
     )
     updateVMOS(
-        vmParameters["vm_name"], operating_system,
+        vmParameters["vm_name"],
+        operating_system,
     )
 
     sendInfo("SUCCESS: VM {} created and updated".format(vmName))
-    vmObj = CCLIENT.virtual_machines.get(os.environ["VM_GROUP"], vmParameters["vm_name"],)
+    vmObj = CCLIENT.virtual_machines.get(
+        os.environ["VM_GROUP"],
+        vmParameters["vm_name"],
+    )
     disk_name = vmObj.storage_profile.os_disk.name
     updateDiskState(disk_name, "TO_BE_DELETED")
     sendInfo("Marking osDisk of {} to TO_BE_DELETED".format(vmName))
@@ -767,8 +837,14 @@ def lockVMAndUpdate(vm_name, state, lock, temporary_lock, change_last_updated, v
     )
 
     if temporary_lock:
-        temporary_lock = min(MAX_LOCK_TIME, temporary_lock,)
-        temporary_lock = shiftUnixByMinutes(dateToUnix(getToday()), temporary_lock,)
+        temporary_lock = min(
+            MAX_LOCK_TIME,
+            temporary_lock,
+        )
+        temporary_lock = shiftUnixByMinutes(
+            dateToUnix(getToday()),
+            temporary_lock,
+        )
 
         command = text(
             """
@@ -841,13 +917,19 @@ def createNic(name, location, tries):
         async_vnet_creation = NCLIENT.virtual_networks.create_or_update(
             os.getenv("VM_GROUP"),
             vnetName,
-            {"location": location, "address_space": {"address_prefixes": ["10.0.0.0/16"]},},
+            {
+                "location": location,
+                "address_space": {"address_prefixes": ["10.0.0.0/16"]},
+            },
         )
         async_vnet_creation.wait()
 
         # Create Subnet
         async_subnet_creation = NCLIENT.subnets.create_or_update(
-            os.getenv("VM_GROUP"), vnetName, subnetName, {"address_prefix": "10.0.0.0/24"},
+            os.getenv("VM_GROUP"),
+            vnetName,
+            subnetName,
+            {"address_prefix": "10.0.0.0/24"},
         )
         subnet_info = async_subnet_creation.result()
 
@@ -857,10 +939,15 @@ def createNic(name, location, tries):
             "public_ip_allocation_method": "Static",
         }
         creation_result = NCLIENT.public_ip_addresses.create_or_update(
-            os.getenv("VM_GROUP"), ipName, public_ip_addess_params,
+            os.getenv("VM_GROUP"),
+            ipName,
+            public_ip_addess_params,
         )
 
-        public_ip_address = NCLIENT.public_ip_addresses.get(os.getenv("VM_GROUP"), ipName,)
+        public_ip_address = NCLIENT.public_ip_addresses.get(
+            os.getenv("VM_GROUP"),
+            ipName,
+        )
 
         # Create NIC
         async_nic_creation = NCLIENT.network_interfaces.create_or_update(
@@ -884,6 +971,10 @@ def createNic(name, location, tries):
             # print(e)
             print("Trying again for createNic")
             time.sleep(3)
-            return createNic(name, location, tries + 1,)
+            return createNic(
+                name,
+                location,
+                tries + 1,
+            )
         else:
             return None

@@ -22,7 +22,10 @@ def deleteLogsInS3(log, devEnv="prod"):
         bucket = "fractal-protocol-logs"
 
         # remove url, keep filename only
-        file_name = file_name.replace("https://fractal-protocol-logs.s3.amazonaws.com/", "",)
+        file_name = file_name.replace(
+            "https://fractal-protocol-logs.s3.amazonaws.com/",
+            "",
+        )
 
         s3 = boto3.resource(
             "s3",
@@ -41,7 +44,11 @@ def deleteLogsInS3(log, devEnv="prod"):
 
     dbUrl = os.getenv("STAGING_DATABASE_URL") if devEnv == "staging" else os.getenv("DATABASE_URL")
 
-    ENGINE = sqlalchemy.create_engine(dbUrl, echo=False, pool_pre_ping=True,)
+    ENGINE = sqlalchemy.create_engine(
+        dbUrl,
+        echo=False,
+        pool_pre_ping=True,
+    )
 
     with ENGINE.connect() as conn:
         success_serverlogs = None

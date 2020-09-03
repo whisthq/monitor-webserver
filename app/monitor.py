@@ -4,7 +4,11 @@ from app.helpers.vms import *
 from app.helpers.s3 import *
 
 # Create db engine object
-ENGINE = sqlalchemy.create_engine(os.getenv("DATABASE_URL"), echo=False, pool_pre_ping=True,)
+ENGINE = sqlalchemy.create_engine(
+    os.getenv("DATABASE_URL"),
+    echo=False,
+    pool_pre_ping=True,
+)
 Session = sessionmaker(bind=ENGINE, autocommit=False)
 
 # Get Azure clients
@@ -20,7 +24,10 @@ NCLIENT = NetworkManagementClient(credentials, subscription_id)
 
 # Threshold for min number of available VMs per region and OS
 REGION_THRESHOLD = {
-    "staging": {"Windows": 0, "Linux": 0,},
+    "staging": {
+        "Windows": 0,
+        "Linux": 0,
+    },
     "prod": {"Windows": 1, "Linux": 1},
 }
 # The regions we care about
@@ -40,7 +47,7 @@ TEST_SHUTOFF = False
 
 
 def monitorVMs(devEnv):
-    """Deallocates any VM that has been running for over 30 minutes while user has been logged off. 
+    """Deallocates any VM that has been running for over 30 minutes while user has been logged off.
        Also updates the database state.
 
     Args:
@@ -58,7 +65,10 @@ def monitorVMs(devEnv):
     for region in REGIONS:
         for vm_os in VM_OS:
             vms = getVMLocationState(
-                location=region, state="RUNNING_AVAILABLE", devEnv=devEnv, operatingSys=vm_os,
+                location=region,
+                state="RUNNING_AVAILABLE",
+                devEnv=devEnv,
+                operatingSys=vm_os,
             )
             if vms:
                 freeVmsByRegion[region][vm_os] = len(vms)
@@ -75,14 +85,16 @@ def monitorVMs(devEnv):
         try:
             if vm["vm_name"] not in azureVms:
                 deleteVmFromTable(
-                    vm["vm_name"], devEnv,
+                    vm["vm_name"],
+                    devEnv,
                 )
                 sendInfo("Deleted nonexistent VM " + vm["vm_name"] + " from database")
             else:
                 # Update the database vm state
                 # Get VM state
                 vm_state = CCLIENT.virtual_machines.instance_view(
-                    resource_group_name=azureGroup, vm_name=vm["vm_name"],
+                    resource_group_name=azureGroup,
+                    vm_name=vm["vm_name"],
                 )
                 # Compare with database and update if there's a disreptancy
                 power_state = vm_state.statuses[1].code
@@ -90,36 +102,48 @@ def monitorVMs(devEnv):
                 if "stopped" in power_state:
                     if vm["state"] != "STOPPED":
                         updateVMState(
-                            vm["vm_name"], "STOPPED", devEnv,
+                            vm["vm_name"],
+                            "STOPPED",
+                            devEnv,
                         )
                     if vm["lock"]:
                         lockVM(
-                            vm["vm_name"], False,
+                            vm["vm_name"],
+                            False,
                         )
                 elif "deallocated" in power_state:
                     if vm["state"] != "DEALLOCATED":
                         updateVMState(
-                            vm["vm_name"], "DEALLOCATED", devEnv,
+                            vm["vm_name"],
+                            "DEALLOCATED",
+                            devEnv,
                         )
                     if vm["lock"]:
                         lockVM(
-                            vm["vm_name"], False,
+                            vm["vm_name"],
+                            False,
                         )
                 if not vm["lock"]:
                     if "starting" in power_state:
                         if vm["state"] != "STARTING":
                             updateVMState(
-                                vm["vm_name"], "STARTING", devEnv,
+                                vm["vm_name"],
+                                "STARTING",
+                                devEnv,
                             )
                     elif "stopping" in power_state:
                         if vm["state"] != "STOPPING":
                             updateVMState(
-                                vm["vm_name"], "STOPPING", devEnv,
+                                vm["vm_name"],
+                                "STOPPING",
+                                devEnv,
                             )
                     elif "deallocating" in power_state:
                         if vm["state"] != "DEALLOCATING":
                             updateVMState(
-                                vm["vm_name"], "DEALLOCATING", devEnv,
+                                vm["vm_name"],
+                                "DEALLOCATING",
+                                devEnv,
                             )
 
                 # Free up VMs that have been left hanging by the client application
@@ -127,10 +151,14 @@ def monitorVMs(devEnv):
                     lastConnectStamp = datetime.fromtimestamp(vm["ready_to_connect"])
                     if lastConnectStamp < datetime.now() - timedelta(seconds=15):
                         updateVMState(
-                            vm["vm_name"], "RUNNING_AVAILABLE", devEnv,
+                            vm["vm_name"],
+                            "RUNNING_AVAILABLE",
+                            devEnv,
                         )
                         lockVM(
-                            vm["vm_name"], False, devEnv,
+                            vm["vm_name"],
+                            False,
+                            devEnv,
                         )
 
                 # Automatically deallocate VMs on standby
@@ -143,7 +171,10 @@ def monitorVMs(devEnv):
                         shutdown = True
                     else:
                         now = datetime.now()
-                        lastActive = datetime.strptime(vm["last_updated"], "%m/%d/%Y, %H:%M",)
+                        lastActive = datetime.strptime(
+                            vm["last_updated"],
+                            "%m/%d/%Y, %H:%M",
+                        )
                         readyConnect = datetime.fromtimestamp(vm["ready_to_connect"])
                         if (
                             timedelta(minutes=30) <= now - lastActive
@@ -174,7 +205,8 @@ def monitorVMs(devEnv):
 
                     if shutdown:
                         deallocVm(
-                            vm["vm_name"], devEnv,
+                            vm["vm_name"],
+                            devEnv,
                         )
                         if devEnv == "prod":
                             timesDeallocated += 1
@@ -201,12 +233,17 @@ def monitorDisks(devEnv):
     unpaidCustomers = fetchStingyCustomers(devEnv)
     if unpaidCustomers:
         for customer in unpaidCustomers:
-            userDisks = fetchDiskByUser(customer["username"], devEnv,)
+            userDisks = fetchDiskByUser(
+                customer["username"],
+                devEnv,
+            )
             if userDisks:
                 for disk in userDisks:
                     if disk["state"] != "TO_BE_DELETED":
                         updateDiskState(
-                            disk["disk_name"], "TO_BE_DELETED", devEnv,
+                            disk["disk_name"],
+                            "TO_BE_DELETED",
+                            devEnv,
                         )
 
     # Deletes nonexistent disks from table, and deletes disks marked as TO_BE_DELETED.
@@ -222,7 +259,8 @@ def monitorDisks(devEnv):
         try:
             if dbDisk["disk_name"] not in azureDisks:
                 deleteDiskFromTable(
-                    dbDisk["disk_name"], devEnv,
+                    dbDisk["disk_name"],
+                    devEnv,
                 )
                 sendInfo(
                     "Deleted nonexistent disk "
@@ -234,14 +272,18 @@ def monitorDisks(devEnv):
             elif not dbDisk["disk_name"].startswith("crimsonbonus543"):
                 delete = False
                 if dbDisk["state"] == "TO_BE_DELETED":
-                    os_disk = CCLIENT.disks.get(azureGroup, dbDisk["disk_name"],)
+                    os_disk = CCLIENT.disks.get(
+                        azureGroup,
+                        dbDisk["disk_name"],
+                    )
                     vm_name = os_disk.managed_by
                     if not vm_name:  # Disk is not attached to VM, go ahead and delete it.
                         if not dbDisk["delete_date"]:
                             delete = True
                         else:
                             expiryTime = datetime.strptime(
-                                dbDisk["delete_date"], "%m/%d/%Y, %H:%M",
+                                dbDisk["delete_date"],
+                                "%m/%d/%Y, %H:%M",
                             )
                             now = datetime.now()
                             if now > expiryTime:
@@ -249,11 +291,15 @@ def monitorDisks(devEnv):
 
                 if delete:
                     sendInfo("Automatically deleting Disk " + dbDisk["disk_name"] + "...")
-                    async_disk_delete = CCLIENT.disks.delete(azureGroup, dbDisk["disk_name"],)
+                    async_disk_delete = CCLIENT.disks.delete(
+                        azureGroup,
+                        dbDisk["disk_name"],
+                    )
                     async_disk_delete.wait()
 
                     deleteDiskFromTable(
-                        dbDisk["disk_name"], devEnv,
+                        dbDisk["disk_name"],
+                        devEnv,
                     )
 
                     sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
@@ -277,7 +323,10 @@ def monitorDisks(devEnv):
 
                         # Send email to user
                         currPath = os.path.abspath(os.path.dirname(sys.argv[0]))
-                        path = os.path.join(currPath, "templates/disk_deleted.txt",)
+                        path = os.path.join(
+                            currPath,
+                            "templates/disk_deleted.txt",
+                        )
                         with open(path, "r") as template:
                             templateData = template.read()
 
@@ -316,7 +365,10 @@ def manageRegions(devEnv):
             for location in REGIONS:
                 try:
                     availableVms = getVMLocationState(
-                        location, "RUNNING_AVAILABLE", operatingSystem, devEnv,
+                        location,
+                        "RUNNING_AVAILABLE",
+                        operatingSystem,
+                        devEnv,
                     )
                     if (
                         not availableVms
@@ -324,14 +376,18 @@ def manageRegions(devEnv):
                     ):
                         print("less than!" + devEnv + operatingSystem + location)
                         deallocVms = getVMLocationState(
-                            location, "DEALLOCATED", operatingSystem, devEnv,
+                            location,
+                            "DEALLOCATED",
+                            operatingSystem,
+                            devEnv,
                         )
                         vmToAllocate = None
                         if deallocVms:
                             for vm in deallocVms:
                                 # Get VM state
                                 vm_state = CCLIENT.virtual_machines.instance_view(
-                                    resource_group_name=azureGroup, vm_name=vm["vm_name"],
+                                    resource_group_name=azureGroup,
+                                    vm_name=vm["vm_name"],
                                 )
                                 if "deallocated" in vm_state.statuses[1].code:
                                     vmToAllocate = vm["vm_name"]
@@ -347,27 +403,37 @@ def manageRegions(devEnv):
                                 + operatingSystem
                             )
                             async_vm_alloc = CCLIENT.virtual_machines.start(
-                                azureGroup, vmToAllocate,
+                                azureGroup,
+                                vmToAllocate,
                             )
                             lockVM(
-                                vmToAllocate, True,
+                                vmToAllocate,
+                                True,
                             )
                             updateVMState(
-                                vm["vm_name"], "STARTING", devEnv,
+                                vm["vm_name"],
+                                "STARTING",
+                                devEnv,
                             )
                             async_vm_alloc.wait()
                             updateVMState(
-                                vm["vm_name"], "RUNNING_AVAILABLE", devEnv,
+                                vm["vm_name"],
+                                "RUNNING_AVAILABLE",
+                                devEnv,
                             )
                             lockVM(
-                                vmToAllocate, False,
+                                vmToAllocate,
+                                False,
                             )
                         else:
                             sendInfo(
                                 "Creating VM in region " + location + " with os " + operatingSystem
                             )
                             createVM(
-                                "standard_NV6_promo", location, operatingSystem, devEnv,
+                                "standard_NV6_promo",
+                                location,
+                                operatingSystem,
+                                devEnv,
                             )
                 except:
                     reportError("Region monitor error for region " + location)
@@ -377,7 +443,7 @@ def monitorLogs(devEnv):
     """Deletes any logs in the logs table, that are over 30 days old
 
     Args:
-        devEnv (str): Dev environment 
+        devEnv (str): Dev environment
     """
 
     sendDebug("Monitoring " + devEnv + " logs...")
@@ -387,7 +453,13 @@ def monitorLogs(devEnv):
     sqlLogs = fetchLogs(devEnv)
     if sqlLogs:
         for log in sqlLogs:
-            if datetime.strptime(log["last_updated"], "%m/%d/%Y, %H:%M",) < thirtyDaysAgo:
+            if (
+                datetime.strptime(
+                    log["last_updated"],
+                    "%m/%d/%Y, %H:%M",
+                )
+                < thirtyDaysAgo
+            ):
                 deleteLogsInS3(log, devEnv)
 
 
@@ -409,7 +481,8 @@ def nightToggle(devEnv):
             for vm in vms:
                 if vm["vm_name"] != "tightcherry1090":
                     deallocVm(
-                        vm["vm_name"], devEnv,
+                        vm["vm_name"],
+                        devEnv,
                     )
             TEST_SHUTOFF = True
     elif TEST_SHUTOFF:
@@ -419,8 +492,7 @@ def nightToggle(devEnv):
 
 
 def monitorThread():
-    """Monitors all the threads defined above on the production environment
-    """
+    """Monitors all the threads defined above on the production environment"""
     # on-off toggle for running the monitor server based on Heroku config var
     while os.getenv("RUNNING"):
         nightToggle("prod")
@@ -432,8 +504,7 @@ def monitorThread():
 
 
 def stagingMonitorThread():
-    """Monitors all the threads defined above on the staging environment
-    """
+    """Monitors all the threads defined above on the staging environment"""
     # on-off toggle for running the monitor server based on Heroku config var
     while os.getenv("RUNNING"):
         monitorVMs("staging")
@@ -444,8 +515,7 @@ def stagingMonitorThread():
 
 
 def reportThread():
-    """Grab data from the monitored thread for our analytics dashboard in admin-dashboard
-    """
+    """Grab data from the monitored thread for our analytics dashboard in admin-dashboard"""
     global timesDeallocated
     # on-off toggle for running the monitor server based on Heroku config var
     while os.getenv("RUNNING"):
@@ -454,9 +524,21 @@ def reportThread():
 
         timestamp = int(time.time())
         vmByRegion = {
-            "eastus": {"available": 0, "unavailable": 0, "deallocated": 0,},
-            "southcentralus": {"available": 0, "unavailable": 0, "deallocated": 0,},
-            "northcentralus": {"available": 0, "unavailable": 0, "deallocated": 0,},
+            "eastus": {
+                "available": 0,
+                "unavailable": 0,
+                "deallocated": 0,
+            },
+            "southcentralus": {
+                "available": 0,
+                "unavailable": 0,
+                "deallocated": 0,
+            },
+            "northcentralus": {
+                "available": 0,
+                "unavailable": 0,
+                "deallocated": 0,
+            },
         }
         users = {
             "eastus": 0,
@@ -482,7 +564,13 @@ def reportThread():
 
         try:
             addReportTable(
-                timestamp, timesDeallocated, logons, logoffs, vmByRegion, users, liveUsers,
+                timestamp,
+                timesDeallocated,
+                logons,
+                logoffs,
+                vmByRegion,
+                users,
+                liveUsers,
             )
             sendInfo("Generated hourly report")
         except:
