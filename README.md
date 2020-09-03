@@ -2,7 +2,7 @@
 
 ![Python Webserver CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20Webserver%20CI/badge.svg)
 
-This repository contains the code that runs on our Heroku monitor webserver, that monitors for changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the Heroku CLI.
+This repository contains the code that runs on our Heroku `fractal-monitor-webserver`, which is responsible for monitoring changes in the disks and VMs live, 24/7. The one-off dyno can be interfaced via the Heroku CLI.
 
 Our webserver is hosted on Heroku [here](https://fractal-monitor-server.herokuapp.com).
 
@@ -10,11 +10,11 @@ Our webserver logs are hosted on Datadog [here](https://app.datadoghq.com/logs?c
 
 ## Development
 
-We have basic continuous integration set via GitHub Actions. For every push or PR to master, the commit will be built and attempted to format via Python Black. You should always make sure that your code passes the tests in the Actions tab.
+We have basic continuous integration set via GitHub Actions. For every PR to master, the commit will be built and a series of tests will be run via `pytest`. The runner will also attempt to format the code via Python Black and will report failure if the code isn't already formatted. See **Styling** below for setting pre-commit hooks and/or IDE integration for linting.
 
 ### Local Setup (Windows/MacOS)
 
-Since the `monitor-webserver` runs independently from any other services, and that it already has access to the SQL databases, we currently do not do testing on local machines. If the time comes where we have testing SQL tables, the monitor webserver will be changed to accomodate local testing.
+Since the monitor webserver runs independently from any other services, and that it already has access to the SQL databases, we currently do not do testing on local machines. If the time comes where we have testing SQL tables, the monitor webserver will be changed to accomodate local testing.
 
 ### Run on Heroku
 
@@ -22,13 +22,13 @@ Here are the main steps to run this webserver on Heroku. While developing mainly
 
 To push to the Heroku server, you’ll first need to set up the Heroku CLI on your computer.
 
-First, add the Heroku server as a remote: `heroku git:remote -a fractal-monitor-server`. You will need to be added as a collaborator for the `fractal-monitor-server ` Heroku app. Contact Ming, Phil or Jonathan to be added.
+First, add the Heroku server as a remote: `heroku git:remote -a fractal-monitor-server`. You will need to have been added as a collaborator for the `fractal-monitor-server ` Heroku app on the Fractal Heroku team.
 
 To push to the server, first make sure you’re in your own branch, then type `git add .`, `git commit -m “{COMMIT_MESSAGE}”`, then finally `git push heroku {YOUR_BRANCH_NAME}:master`. If you get a git pull error, git pull by typing `git pull heroku master` to pull from Heroku or `git pull origin master` to pull from GitHub.
 
 To run the monitor script, type `heroku run:detached python monitor.py`.
 
-To view the verbose server logs on Heroku, type `heroku logs --tail`. We also aggregate logs in Datadog. You can access them [here](https://app.datadoghq.com/logs?cols=core_host%2Ccore_service&from_ts=1593977274176&index=&live=true&messageDisplay=inline&stream_sort=desc&to_ts=1593978174176). If you need to modify the Datadog logging, refer to the [Heroku Webserver Datadog Logging](https://www.notion.so/fractalcomputers/Heroku-Webserver-Datadog-Logging-dfd38d40705a4226b9f0922ef262709c) document in the Engineering Wiki of the Fractal Notion.
+To view the verbose server logs on Heroku, type `heroku logs --tail`. We also aggregate logs in Datadog via a HTTP sink. You can access them [here](https://app.datadoghq.com/logs?cols=core_host%2Ccore_service&from_ts=1593977274176&index=&live=true&messageDisplay=inline&stream_sort=desc&to_ts=1593978174176). If you need to modify the Datadog logging, refer to the [Heroku Webserver Datadog Logging](https://www.notion.so/fractalcomputers/Heroku-Webserver-Datadog-Logging-dfd38d40705a4226b9f0922ef262709c) document in the Engineering Wiki of the Fractal Notion.
 
 To view the current running processes, type `heroku ps`.
 
@@ -38,7 +38,9 @@ Once you are ready to deploy to production, you can merge your code into `master
 
 ## Styling
 
-To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python black](https://github.com/psf/black) before making any PRs. You may find a variety of tutorial online for your personal setup. This README covers how to set it up on VSCode and running it from the CLI.
+To ensure that code formatting is standardized, and to minimize clutter in the commits, you should set up styling with [Python Black](https://github.com/psf/black) before making any PRs. We have [pre-commit hooks](https://pre-commit.com/) with Python Black support installed on this project, which you can initialize by first installing pre-commit via `pip install pre-commit` and then running `pre-commit install` to instantiate the hooks for Python Black.
+
+You can always run Python Black directly from a terminal by first installing it via `pip install black` with Python 3.6+ and running `black .` to format the whole project. You can see and modify the project's Python Black settings in `pyproject.toml` and list options by running `black --help`. If you prefer, you can also install it directly within your IDE by via the following instructions:
 
 ### [VSCode](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)
 
@@ -58,17 +60,3 @@ ext install ms-python.python
 4. Type “format on save” at the search bar on top of the Settings tab and check the box.
 5. Search for “python formatting provider” and select “black”.
 6. Now open/create a python file, write some code and save(Ctrl+s) it to see the magic happen!
-
-### [CLI](https://github.com/psf/black)
-
-Installation:  
-Black can be installed by running `pip install black`. It requires Python 3.6.0+ to run but you can reformat Python 2 code with it, too.
-
-Usage:  
-To get started right away with the project's Black settings listed in `pyproject.toml`:
-
-```
-black {source_file_or_directory}
-```
-
-To run it on the whole project, simply run `black .`. Black doesn't provide many options. You can list them by running `black --help`.
