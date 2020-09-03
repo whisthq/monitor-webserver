@@ -44,19 +44,18 @@ You can always run Python Black directly from a terminal by first installing it 
 
 ### [VSCode](https://medium.com/@marcobelo/setting-up-python-black-on-visual-studio-code-5318eba4cd00)
 
-1. Install it on your virtual env or in your local python with the command:
+1. Install it on your virtual env or in your local Python with the command: `pip install black`
 
-```
-$ pip install black
-```
-
-2. Now install the python extension for VS-Code, open your VS-Code and type “Ctrl + p”, paste the line bellow and hit enter:
+2. Now install the Python extension for VS-Code by opening your VSCode, typing “Ctrl + P”, and pasting the line below:
 
 ```
 ext install ms-python.python
 ```
 
-3. Go to the settings in your VS-Code typing “Ctrl + ,” or clicking at the gear on the bottom left and selecting “Settings [Ctrl+,]” option.
+3. Go to the settings in your VSCode by typing “Ctrl + ,” or clicking at the gear on the bottom left and selecting “Settings [Ctrl+,]” option.
+
 4. Type “format on save” at the search bar on top of the Settings tab and check the box.
-5. Search for “python formatting provider” and select “black”.
-6. Now open/create a python file, write some code and save(Ctrl+s) it to see the magic happen!
+
+5. Search for “Python formatting provider” and select “Black”.
+
+6. Now open/create a Python file, write some code and save it to see the magic happen!
