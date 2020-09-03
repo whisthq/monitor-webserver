@@ -38,7 +38,7 @@ def sendInfo(log):
 
     Returns:
         None: Returns None, always
-    # """
+    #"""
     print("INFO: " + str(log), file=sys.stdout)
     return None
 

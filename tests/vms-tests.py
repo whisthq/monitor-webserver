@@ -77,7 +77,10 @@ def test_updateVMOS():
 
 
 def test_fetchVMCredentials():
-    assert isinstance(fetchVMCredentials("dev-nv6"), dict,)  # Nick's VM
+    assert isinstance(
+        fetchVMCredentials("dev-nv6"),
+        dict,
+    )  # Nick's VM
 
 
 def test_lockVMAndUpdate():
