@@ -10,7 +10,9 @@ Our webserver logs are hosted on Datadog [here](https://app.datadoghq.com/logs?c
 
 ## Development
 
-We have basic continuous integration set via GitHub Actions. For every PR to master, the commit will be built and a series of tests will be run via `pytest`. The runner will also attempt to format the code via Python Black and will report failure if the code isn't already formatted. See **Styling** below for setting pre-commit hooks and/or IDE integration for linting.
+We have basic continuous integration set via GitHub Actions. For every PR to master, the commit will be built and a series of tests will be run via `pytest`. The runner will also check if the code is formatted with via Python Black and will report failure if not. See **Styling** below for setting pre-commit hooks and/or IDE integration for linting.
+
+To see full documentation, check the GitHub Wiki.
 
 ### Local Setup (Windows/MacOS)
 
