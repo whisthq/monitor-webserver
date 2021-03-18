@@ -1,7 +1,5 @@
 # Fractal Monitor Webserver
 
-![Python Webserver CI](https://github.com/fractalcomputers/monitor-webserver/workflows/Python%20Webserver%20CI/badge.svg)
-
 **THIS REPOSITORY WAS ARCHIVED FOLLOWING OUR MIGRATION FROM VIRTUAL MACHINES TO CONTAINERS, WHICH DO NOT NEED MONITORING AS THEY ARE SPUN UP AND DOWN AS USERS REQUEST SPECIFIC APPLICATIONS. ALL HEROKU SLUGS, DATADOG HOSTS AND OTHER HOSTING SERVICES WERE DELETED. AS SUCH, THE INSTRUCTIONS BELOW MAY NO LONGER APPLY. THE REPOSITORY IS LEFT AS ARCHIVED HERE FOR REFERENCE.**
 
 This repository contains the code that runs on our Heroku `fractal-monitor-webserver`, which is responsible for monitoring changes in the disks and Azure VMs live, 24/7. The one-off dyno can be interfaced via the Heroku CLI.
