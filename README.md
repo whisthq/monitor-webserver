@@ -26,7 +26,7 @@ To push to the Heroku server, you’ll first need to set up the Heroku CLI on yo
 
 First, add the Heroku server as a remote: `heroku git:remote -a fractal-monitor-server`. You will need to have been added as a collaborator for the `fractal-monitor-server ` Heroku app on the Fractal Heroku team.
 
-To push to the server, first make sure you’re in your own branch, then type `git add .`, `git commit -m “{COMMIT_MESSAGE}”`, then finally `git push heroku {YOUR_BRANCH_NAME}:master`. If you get a git pull error, git pull by typing `git pull heroku master` to pull from Heroku or `git pull origin master` to pull from GitHub.
+To push to the server, first make sure you’re in your own branch, then type `git add .`, `git commit -m “{COMMIT_MESSAGE}”`, then finally `git push heroku {YOUR_BRANCH_NAME}:master`. If you get a git pull error, git pull by typing `git pull heroku master` to pull from Heroku or `git pull origin main` to pull from GitHub.
 
 To run the monitor script, type `heroku run:detached python monitor.py`.
 
